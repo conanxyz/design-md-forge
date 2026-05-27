@@ -19,14 +19,44 @@ function isPrivateIpv4(hostname) {
 
 function normalizeHostnameForPolicy(hostname) {
   let normalized = hostname.toLowerCase();
-  if (normalized.endsWith(".")) normalized = normalized.slice(0, -1);
+  normalized = normalized.replace(/\.+$/u, "");
   if (normalized.startsWith("[") && normalized.endsWith("]")) {
     normalized = normalized.slice(1, -1);
   }
   return normalized;
 }
 
+function isIpv6Literal(hostname) {
+  return hostname.includes(":");
+}
+
+function ipv4FromMappedIpv6(hostname) {
+  if (!hostname.startsWith("::ffff:")) return "";
+  const mapped = hostname.slice("::ffff:".length);
+  if (mapped.includes(".")) return mapped;
+
+  const hexParts = mapped.split(":");
+  if (hexParts.length !== 2) return "";
+
+  const high = Number.parseInt(hexParts[0], 16);
+  const low = Number.parseInt(hexParts[1], 16);
+  if (![high, low].every((part) => Number.isInteger(part) && part >= 0 && part <= 0xffff)) {
+    return "";
+  }
+
+  return [
+    (high >> 8) & 255,
+    high & 255,
+    (low >> 8) & 255,
+    low & 255
+  ].join(".");
+}
+
 function isPrivateIpv6(hostname) {
+  if (!isIpv6Literal(hostname)) return false;
+  const mappedIpv4 = ipv4FromMappedIpv6(hostname);
+  if (mappedIpv4) return isPrivateIpv4(mappedIpv4);
+
   return (
     hostname === "::1" ||
     hostname.startsWith("fe80:") ||

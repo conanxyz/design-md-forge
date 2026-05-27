@@ -94,6 +94,7 @@ describe("Jina Reader provider", () => {
   it("blocks trailing-dot internal hostnames", () => {
     for (const url of [
       "http://localhost.",
+      "http://localhost..",
       "http://foo.local.",
       "http://svc.internal.",
       "http://example.test."
@@ -111,6 +112,24 @@ describe("Jina Reader provider", () => {
     ]) {
       expect(prepareJinaTargetUrl(url).error).toBe("Jina fallback is blocked for localhost, private, or internal URLs");
     }
+  });
+
+  it("blocks private IPv4-mapped IPv6 hostnames", () => {
+    for (const url of [
+      "http://[::ffff:127.0.0.1]/",
+      "http://[::ffff:10.0.0.1]/",
+      "http://[::ffff:172.16.0.1]/",
+      "http://[::ffff:192.168.1.1]/",
+      "http://[::ffff:169.254.1.1]/"
+    ]) {
+      expect(prepareJinaTargetUrl(url).error).toBe("Jina fallback is blocked for localhost, private, or internal URLs");
+    }
+  });
+
+  it("does not apply IPv6 private-prefix checks to public DNS hostnames", () => {
+    expect(prepareJinaTargetUrl("https://fdroid.org").targetUrl).toBe("https://fdroid.org/");
+    expect(prepareJinaTargetUrl("https://fcbarcelona.com").targetUrl).toBe("https://fcbarcelona.com/");
+    expect(prepareJinaTargetUrl("http://[::ffff:8.8.8.8]/").targetUrl).toBe("http://[::ffff:808:808]/");
   });
 
   it("returns errors and zero confidence when response text rejects", async () => {
