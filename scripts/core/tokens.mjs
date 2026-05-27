@@ -1,5 +1,9 @@
 function isTransparent(value) {
-  return /rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i.test(value) || value === "transparent";
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed === "transparent") return true;
+
+  const rgba = trimmed.match(/rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(0(?:\.0+)?)\s*\)/i);
+  return Boolean(rgba);
 }
 
 export function normalizeColor(value) {

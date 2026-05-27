@@ -5,6 +5,7 @@ describe("token extraction", () => {
   it("normalizes rgb colors to hex", () => {
     expect(normalizeColor("rgb(99, 91, 255)")).toBe("#635bff");
     expect(normalizeColor("rgba(0, 0, 0, 0)")).toBe(null);
+    expect(normalizeColor("rgba(99, 91, 255, 0)")).toBe(null);
   });
 
   it("extracts colors, typography, spacing, radii, and shadows from computed styles", () => {
