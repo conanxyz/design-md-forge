@@ -2,6 +2,14 @@ function copyArray(value) {
   return value ? [...value] : [];
 }
 
+function copyArrayEntries(value) {
+  return value
+    ? value.map((entry) =>
+        entry && typeof entry === "object" && !Array.isArray(entry) ? { ...entry } : entry
+      )
+    : [];
+}
+
 export function createPageAnalysis({
   url,
   title = "",
@@ -19,10 +27,10 @@ export function createPageAnalysis({
   return {
     url,
     title,
-    viewport,
+    viewport: viewport ? { ...viewport } : viewport,
     screenshotPath,
     cssVars: { ...cssVars },
-    computedStyles: [...computedStyles],
+    computedStyles: copyArrayEntries(computedStyles),
     links: [...links],
     htmlSummary: {
       headings: copyArray(htmlSummary.headings),
@@ -31,18 +39,18 @@ export function createPageAnalysis({
       ctaLabels: copyArray(htmlSummary.ctaLabels)
     },
     tokens: {
-      colors: copyArray(tokens.colors),
-      typography: copyArray(tokens.typography),
-      spacing: copyArray(tokens.spacing),
-      radii: copyArray(tokens.radii),
-      shadows: copyArray(tokens.shadows)
+      colors: copyArrayEntries(tokens.colors),
+      typography: copyArrayEntries(tokens.typography),
+      spacing: copyArrayEntries(tokens.spacing),
+      radii: copyArrayEntries(tokens.radii),
+      shadows: copyArrayEntries(tokens.shadows)
     },
     components: {
-      buttons: copyArray(components.buttons),
-      cards: copyArray(components.cards),
-      forms: copyArray(components.forms),
-      nav: copyArray(components.nav),
-      hero: copyArray(components.hero)
+      buttons: copyArrayEntries(components.buttons),
+      cards: copyArrayEntries(components.cards),
+      forms: copyArrayEntries(components.forms),
+      nav: copyArrayEntries(components.nav),
+      hero: copyArrayEntries(components.hero)
     },
     confidence,
     warnings: [...warnings]
@@ -65,14 +73,14 @@ export function createAnalysis({
       analyzedUrls: [...analyzedUrls],
       capturedAt
     },
-    pages: [...pages],
+    pages: copyArrayEntries(pages),
     aggregate: {
-      colors: copyArray(aggregate.colors),
-      typographyScale: copyArray(aggregate.typographyScale),
-      spacingScale: copyArray(aggregate.spacingScale),
-      radiusScale: copyArray(aggregate.radiusScale),
-      shadows: copyArray(aggregate.shadows),
-      componentPatterns: copyArray(aggregate.componentPatterns),
+      colors: copyArrayEntries(aggregate.colors),
+      typographyScale: copyArrayEntries(aggregate.typographyScale),
+      spacingScale: copyArrayEntries(aggregate.spacingScale),
+      radiusScale: copyArrayEntries(aggregate.radiusScale),
+      shadows: copyArrayEntries(aggregate.shadows),
+      componentPatterns: copyArrayEntries(aggregate.componentPatterns),
       confidence: { ...(aggregate.confidence || {}) }
     },
     warnings: [...warnings]

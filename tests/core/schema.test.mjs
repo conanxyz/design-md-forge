@@ -34,6 +34,7 @@ describe("analysis schema constructors", () => {
   });
 
   it("copies page analysis collections so caller mutations do not leak in", () => {
+    const viewport = { width: 1440, height: 1200 };
     const cssVars = { "--color": "#fff" };
     const computedStyles = [{ selector: "button" }];
     const links = [{ href: "/pricing" }];
@@ -61,7 +62,7 @@ describe("analysis schema constructors", () => {
 
     const page = createPageAnalysis({
       url: "https://example.com",
-      viewport: { width: 1440, height: 1200 },
+      viewport,
       cssVars,
       computedStyles,
       links,
@@ -71,7 +72,9 @@ describe("analysis schema constructors", () => {
       warnings
     });
 
+    viewport.width = 390;
     cssVars["--color"] = "#000";
+    computedStyles[0].selector = "mutated";
     computedStyles.push({ selector: "a" });
     links.push({ href: "/blog" });
     htmlSummary.headings.push("Changed");
@@ -90,6 +93,7 @@ describe("analysis schema constructors", () => {
     components.hero.push("about");
     warnings.push("Changed");
 
+    expect(page.viewport).toEqual({ width: 1440, height: 1200 });
     expect(page.cssVars).toEqual({ "--color": "#fff" });
     expect(page.computedStyles).toEqual([{ selector: "button" }]);
     expect(page.links).toEqual([{ href: "/pricing" }]);
@@ -136,6 +140,7 @@ describe("analysis schema constructors", () => {
 
     inputUrls.push("https://example.com/input-mutated");
     analyzedUrls.push("https://example.com/analyzed-mutated");
+    pages[0].url = "https://example.com/page-mutated";
     pages.push({ url: "https://example.com/changed" });
     aggregate.colors.push("#000");
     aggregate.typographyScale.push("20px");
