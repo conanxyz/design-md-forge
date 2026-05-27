@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Sample Product</title>
+    <style>
+      :root {
+        --brand: #635bff;
+        --canvas: #f7f6f3;
+        --ink: #171717;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        color: var(--ink);
+        background: var(--canvas);
+      }
+      nav {
+        padding: 16px 24px;
+      }
+      .hero {
+        padding: 64px 24px;
+      }
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        color: white;
+        background: var(--brand);
+        box-shadow: rgba(0, 0, 0, 0.12) 0 8px 24px;
+      }
+      .card {
+        padding: 24px;
+        border-radius: 12px;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <nav><a href="/pricing">Pricing</a><a href="/docs">Docs</a></nav>
+    <main>
+      <section class="hero">
+        <h1>Sample Product</h1>
+        <p>Useful product copy with enough text for the analyzer.</p>
+        <button>Start now</button>
+      </section>
+      <section class="card"><h2>Feature</h2><p>Card copy.</p></section>
+    </main>
+  </body>
+</html>
