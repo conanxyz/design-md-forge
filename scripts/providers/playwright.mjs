@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
@@ -40,18 +41,25 @@ export function summarizeCaptureWarnings({ textLength, cssVarCount, computedStyl
   return warnings;
 }
 
+export function buildScreenshotName(url) {
+  const slug = slugifyUrl(url);
+  const hash = crypto.createHash("sha256").update(url).digest("hex").slice(0, 8);
+  return `desktop-${slug}-${hash}.png`;
+}
+
 export async function captureWithPlaywright({ url, screenshotDir, viewport = { width: 1440, height: 1200 } }) {
   await fs.mkdir(screenshotDir, { recursive: true });
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    viewport,
-    deviceScaleFactor: 1,
-    colorScheme: "light",
-    reducedMotion: "reduce"
-  });
-  const page = await context.newPage();
 
   try {
+    const context = await browser.newContext({
+      viewport,
+      deviceScaleFactor: 1,
+      colorScheme: "light",
+      reducedMotion: "reduce"
+    });
+    const page = await context.newPage();
+
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.locator("body").waitFor({ state: "visible", timeout: 15000 });
     await page.evaluate(() => document.fonts?.ready);
@@ -105,7 +113,7 @@ export async function captureWithPlaywright({ url, screenshotDir, viewport = { w
       };
     }, selectors);
 
-    const screenshotName = `desktop-${slugifyUrl(url)}.png`;
+    const screenshotName = buildScreenshotName(url);
     const screenshotPath = path.join(screenshotDir, screenshotName);
     await page.screenshot({ path: screenshotPath, fullPage: true });
 
