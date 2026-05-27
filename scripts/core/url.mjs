@@ -6,6 +6,9 @@ export function normalizeInputUrl(value) {
   if (/^https?:\/\//i.test(trimmed) || /^file:\/\//i.test(trimmed)) {
     return trimmed;
   }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+    throw new Error("Unsupported URL scheme");
+  }
   return `https://${trimmed}`;
 }
 
@@ -16,7 +19,9 @@ export function getDomain(url) {
 
 export function isSameDomain(baseUrl, candidateUrl) {
   try {
-    return getDomain(baseUrl) === getDomain(candidateUrl);
+    const baseDomain = getDomain(baseUrl);
+    const candidateDomain = getDomain(candidateUrl);
+    return baseDomain.length > 0 && baseDomain === candidateDomain;
   } catch {
     return false;
   }
