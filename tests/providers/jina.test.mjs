@@ -31,6 +31,20 @@ describe("Jina Reader provider", () => {
     expect(result.confidence).toBeGreaterThan(0.7);
   });
 
+  it("trims whitespace before normalizing protocol-less URLs", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => "# Example\n\n" + "content ".repeat(300)
+    }));
+
+    const result = await readWithJina({ url: "  example.com/docs  ", fetchImpl });
+
+    expect(fetchImpl).toHaveBeenCalledWith("https://r.jina.ai/https://example.com/docs", expect.anything());
+    expect(result.url).toBe("https://example.com/docs");
+    expect(result.confidence).toBeGreaterThan(0.7);
+  });
+
   it("returns errors and zero confidence when fetch rejects", async () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error("network failed");
