@@ -59,10 +59,26 @@ export async function captureWithPlaywright({ url, screenshotDir, viewport = { w
       reducedMotion: "reduce"
     });
     const page = await context.newPage();
+    await page.route(/\.(woff2?|ttf|otf)(\?.*)?$/i, (route) => route.abort());
 
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
-    await page.locator("body").waitFor({ state: "visible", timeout: 15000 });
-    await page.evaluate(() => document.fonts?.ready);
+    await page.goto(url, { waitUntil: "commit", timeout: 45000 });
+    await page.locator("body").waitFor({ state: "attached", timeout: 15000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    await page.waitForFunction(() => {
+      const text = document.body.innerText;
+      return text.length > 500 || !text.includes("self.__next_f");
+    }, null, { timeout: 25000 }).catch(() => {});
+    await Promise.race([
+      page.evaluate(() => document.fonts?.ready),
+      page.waitForTimeout(2000)
+    ]).catch(() => {});
+    await page.evaluate(() => {
+      if (!document.fonts?.delete) return;
+      for (const fontFace of document.fonts) {
+        document.fonts.delete(fontFace);
+      }
+    }).catch(() => {});
 
     const selectors = buildRepresentativeSelectors();
     const data = await page.evaluate((captureSelectors) => {
@@ -115,7 +131,18 @@ export async function captureWithPlaywright({ url, screenshotDir, viewport = { w
 
     const screenshotName = buildScreenshotName(url);
     const screenshotPath = path.join(screenshotDir, screenshotName);
-    await page.screenshot({ path: screenshotPath, fullPage: true });
+    try {
+      await page.screenshot({ path: screenshotPath, fullPage: true, timeout: 10000 });
+    } catch {
+      const client = await context.newCDPSession(page);
+      const screenshot = await client.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: true,
+        fromSurface: true
+      });
+      await fs.writeFile(screenshotPath, Buffer.from(screenshot.data, "base64"));
+      await client.detach();
+    }
 
     const tokens = extractTokensFromComputedStyles(data.computedStyles);
     const warnings = summarizeCaptureWarnings({
