@@ -8,7 +8,15 @@ import { getDomain, normalizeInputUrl } from "./core/url.mjs";
 import { captureWithPlaywright } from "./providers/playwright.mjs";
 import { readWithJina } from "./providers/jina.mjs";
 
-function parseArgs(argv) {
+function readOptionValue(argv, index, option) {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`${option} requires a value`);
+  }
+  return value;
+}
+
+export function parseArgs(argv) {
   const urls = [];
   let outDir = process.cwd();
   let runId = createRunId();
@@ -17,13 +25,13 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === "--url") {
-      urls.push(argv[index + 1]);
+      urls.push(readOptionValue(argv, index, value));
       index += 1;
     } else if (value === "--out-dir") {
-      outDir = argv[index + 1];
+      outDir = readOptionValue(argv, index, value);
       index += 1;
     } else if (value === "--run-id") {
-      runId = argv[index + 1];
+      runId = readOptionValue(argv, index, value);
       index += 1;
     } else if (value === "--no-jina") {
       useJina = false;
@@ -51,7 +59,14 @@ function applyVisualEvidenceConfidenceFloor(captured) {
   return captured;
 }
 
-export async function runAnalyzeSite({ urls, rootDir = process.cwd(), runId = createRunId(), useJina = true }) {
+export async function runAnalyzeSite({
+  urls,
+  rootDir = process.cwd(),
+  runId = createRunId(),
+  useJina = true,
+  capture = captureWithPlaywright,
+  read = readWithJina
+}) {
   if (!urls || urls.length === 0) {
     throw new Error("At least one --url is required");
   }
@@ -65,19 +80,34 @@ export async function runAnalyzeSite({ urls, rootDir = process.cwd(), runId = cr
   const warnings = [];
 
   for (const url of normalizedUrls) {
-    const captured = await captureWithPlaywright({ url, screenshotDir: paths.screenshotDir });
+    const captured = await capture({ url, screenshotDir: paths.screenshotDir });
+    let fallbackEvidence;
     applyVisualEvidenceConfidenceFloor(captured);
     if (useJina && captured.htmlSummary.headings.length < 2 && !url.startsWith("file://")) {
       try {
-        const jina = await readWithJina({ url });
-        captured.jina = { markdown: jina.markdown, confidence: jina.confidence };
-        warnings.push(...jina.warnings.map((message) => `Jina for ${url}: ${message}`));
+        const jina = await read({ url });
+        const jinaWarnings = jina.warnings || [];
+        const jinaErrors = jina.errors || [];
+        fallbackEvidence = {
+          jina: {
+            markdown: jina.markdown,
+            confidence: jina.confidence,
+            warnings: [...jinaWarnings],
+            errors: [...jinaErrors]
+          }
+        };
+        warnings.push(...jinaWarnings.map((message) => `Jina for ${url}: ${message}`));
+        warnings.push(...jinaErrors.map((message) => `Jina for ${url}: ${message}`));
       } catch (error) {
         warnings.push(`Jina failed for ${url}: ${error.message}`);
       }
     }
 
-    pages.push(createPageAnalysis(captured));
+    const pageAnalysis = createPageAnalysis(captured);
+    if (fallbackEvidence) {
+      pageAnalysis.fallbacks = fallbackEvidence;
+    }
+    pages.push(pageAnalysis);
     warnings.push(...captured.warnings.map((message) => `${url}: ${message}`));
   }
 
