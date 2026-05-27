@@ -20,5 +20,8 @@ Each page contains:
 - `components`
 - `confidence`
 - `warnings`
+- Optional `fallbacks.jina`: captured only for eligible non-file pages with fewer than 2 Playwright headings, unless Jina is disabled. It contains `markdown`, `confidence`, `warnings`, and `errors`.
 
 Token entries should preserve source evidence with selector, tag, property, value, role candidate, occurrence count when aggregated, and confidence.
+
+Jina Reader fallback warnings and errors are also copied into top-level `warnings` with URL context so agents can see run-level evidence gaps without inspecting every page entry.

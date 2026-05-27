@@ -11,3 +11,5 @@ If only one URL was analyzed, say so in `Confidence Notes`.
 If a component was not observed, do not write detailed component rules for it.
 
 If screenshots or computed styles failed, stop and ask for another URL or more evidence.
+
+If `fallbacks.jina` is present, use its markdown only to clarify page semantics, headings, and content structure. Do not let fallback text override stronger Playwright visual evidence.
