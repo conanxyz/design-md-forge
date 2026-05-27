@@ -20,6 +20,17 @@ describe("confidence helpers", () => {
     expect(weak).toBeLessThan(0.4);
   });
 
+  it("pins exact evidence scoring boundaries", () => {
+    expect(scorePageEvidence({})).toBe(0);
+    expect(scorePageEvidence({ textLength: 1000 })).toBe(0);
+    expect(scorePageEvidence({ textLength: 1001 })).toBe(0.2);
+    expect(scorePageEvidence({ cssVarCount: 4 })).toBe(0);
+    expect(scorePageEvidence({ cssVarCount: 5 })).toBe(0.2);
+    expect(scorePageEvidence({ computedStyleCount: 9 })).toBe(0);
+    expect(scorePageEvidence({ computedStyleCount: 10 })).toBe(0.35);
+    expect(scorePageEvidence({ screenshotCount: 1 })).toBe(0.25);
+  });
+
   it("adds warning strings without duplicating messages", () => {
     const warnings = [];
     addWarning(warnings, "Few CSS variables found");

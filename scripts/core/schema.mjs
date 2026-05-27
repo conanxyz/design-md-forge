@@ -1,3 +1,7 @@
+function copyArray(value) {
+  return value ? [...value] : [];
+}
+
 export function createPageAnalysis({
   url,
   title = "",
@@ -17,31 +21,31 @@ export function createPageAnalysis({
     title,
     viewport,
     screenshotPath,
-    cssVars,
-    computedStyles,
-    links,
+    cssVars: { ...cssVars },
+    computedStyles: [...computedStyles],
+    links: [...links],
     htmlSummary: {
-      headings: htmlSummary.headings || [],
-      landmarks: htmlSummary.landmarks || [],
-      navLabels: htmlSummary.navLabels || [],
-      ctaLabels: htmlSummary.ctaLabels || []
+      headings: copyArray(htmlSummary.headings),
+      landmarks: copyArray(htmlSummary.landmarks),
+      navLabels: copyArray(htmlSummary.navLabels),
+      ctaLabels: copyArray(htmlSummary.ctaLabels)
     },
     tokens: {
-      colors: tokens.colors || [],
-      typography: tokens.typography || [],
-      spacing: tokens.spacing || [],
-      radii: tokens.radii || [],
-      shadows: tokens.shadows || []
+      colors: copyArray(tokens.colors),
+      typography: copyArray(tokens.typography),
+      spacing: copyArray(tokens.spacing),
+      radii: copyArray(tokens.radii),
+      shadows: copyArray(tokens.shadows)
     },
     components: {
-      buttons: components.buttons || [],
-      cards: components.cards || [],
-      forms: components.forms || [],
-      nav: components.nav || [],
-      hero: components.hero || []
+      buttons: copyArray(components.buttons),
+      cards: copyArray(components.cards),
+      forms: copyArray(components.forms),
+      nav: copyArray(components.nav),
+      hero: copyArray(components.hero)
     },
     confidence,
-    warnings
+    warnings: [...warnings]
   };
 }
 
@@ -57,20 +61,20 @@ export function createAnalysis({
   return {
     target: {
       domain,
-      inputUrls,
-      analyzedUrls,
+      inputUrls: [...inputUrls],
+      analyzedUrls: [...analyzedUrls],
       capturedAt
     },
-    pages,
+    pages: [...pages],
     aggregate: {
-      colors: aggregate.colors || [],
-      typographyScale: aggregate.typographyScale || [],
-      spacingScale: aggregate.spacingScale || [],
-      radiusScale: aggregate.radiusScale || [],
-      shadows: aggregate.shadows || [],
-      componentPatterns: aggregate.componentPatterns || [],
-      confidence: aggregate.confidence || {}
+      colors: copyArray(aggregate.colors),
+      typographyScale: copyArray(aggregate.typographyScale),
+      spacingScale: copyArray(aggregate.spacingScale),
+      radiusScale: copyArray(aggregate.radiusScale),
+      shadows: copyArray(aggregate.shadows),
+      componentPatterns: copyArray(aggregate.componentPatterns),
+      confidence: { ...(aggregate.confidence || {}) }
     },
-    warnings
+    warnings: [...warnings]
   };
 }
