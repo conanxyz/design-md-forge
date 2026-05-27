@@ -1,6 +1,14 @@
 import path from "node:path";
 
+export function validateRunId(runId) {
+  if (typeof runId !== "string" || !/^[a-z0-9._-]+$/i.test(runId)) {
+    throw new Error("--run-id must be a single path-safe segment using letters, numbers, dots, underscores, or hyphens");
+  }
+  return runId;
+}
+
 export function buildRunPaths({ rootDir, domain, runId }) {
+  validateRunId(runId);
   const runDir = path.join(rootDir, "design-output", domain, runId);
   return {
     runDir,

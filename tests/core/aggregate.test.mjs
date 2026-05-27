@@ -137,7 +137,12 @@ describe("page aggregation", () => {
       { kind: "forms", fields: 2, confidence: 0.7 },
       { kind: "hero", layout: "split", confidence: 0.75 }
     ]);
-    expect(aggregate.confidence.overall).toBe(0.9);
+    expect(aggregate.confidence).toEqual({
+      overall: 0.88,
+      bestPage: 0.9,
+      weakestPage: 0.85,
+      pageCount: 2
+    });
   });
 
   it("returns empty aggregates for partial page objects", () => {
@@ -150,7 +155,7 @@ describe("page aggregation", () => {
       radiusScale: [],
       shadows: [],
       componentPatterns: [],
-      confidence: { overall: 0 }
+      confidence: { overall: 0, bestPage: 0, weakestPage: 0, pageCount: 2 }
     });
   });
 

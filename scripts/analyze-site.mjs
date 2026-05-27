@@ -20,7 +20,7 @@ export function parseArgs(argv) {
   const urls = [];
   let outDir = process.cwd();
   let runId = createRunId();
-  let useJina = true;
+  let useJina = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
@@ -33,8 +33,12 @@ export function parseArgs(argv) {
     } else if (value === "--run-id") {
       runId = readOptionValue(argv, index, value);
       index += 1;
+    } else if (value === "--jina") {
+      useJina = true;
     } else if (value === "--no-jina") {
       useJina = false;
+    } else {
+      throw new Error(`Unknown option: ${value}`);
     }
   }
 
@@ -63,7 +67,7 @@ export async function runAnalyzeSite({
   urls,
   rootDir = process.cwd(),
   runId = createRunId(),
-  useJina = true,
+  useJina = false,
   capture = captureWithPlaywright,
   read = readWithJina
 }) {

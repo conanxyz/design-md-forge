@@ -34,8 +34,9 @@ Optional CLI flags:
 
 - `--url`: repeatable input URL to analyze.
 - `--out-dir`: output root for generated analysis artifacts.
-- `--run-id`: stable run directory name to use instead of an auto-generated ID.
-- `--no-jina`: disable Jina Reader fallback collection.
+- `--run-id`: stable path-safe run directory name to use instead of an auto-generated ID.
+- `--jina`: explicitly enable Jina Reader fallback collection for public HTTP(S) URLs.
+- `--no-jina`: keep Jina Reader disabled. This is the default.
 
 5. Read the generated `analysis.json`.
 6. Write `DESIGN.md` next to `analysis.json`.
@@ -43,7 +44,9 @@ Optional CLI flags:
 
 ## Tool Policy
 
-Use Playwright as the primary visual evidence source. Use Jina for non-file pages when Playwright captured fewer than 2 headings, unless `--no-jina` is set.
+Use Playwright as the primary visual evidence source. Use Jina only when `--jina` is explicitly set and Playwright captured fewer than 2 headings.
+
+Jina is an external service. Never send `file://`, localhost, private-network, internal, or credentialed URLs to Jina. The script strips credentials, query strings, and hashes before requesting Jina.
 
 Do not use Firecrawl, AgentKey, Browser Agent, Stagehand, Web UI, MCP, or deep crawling in V1.
 
@@ -83,4 +86,4 @@ Confidence Notes must explain strong observations, weak inferences, and missing 
 
 Stop instead of generating `DESIGN.md` when Playwright capture fails for any page, including when the page cannot be reached, body is invisible, screenshot is blank, or access is blocked by login or CAPTCHA.
 
-Continue with warnings when CSS variables are sparse, some resources fail, or Jina fallback fails while Playwright evidence is available. Jina fallback warnings and errors do not abort the run.
+Continue with warnings when CSS variables are sparse, some resources fail, or explicit Jina fallback fails while Playwright evidence is available. Jina fallback warnings and errors do not abort the run.

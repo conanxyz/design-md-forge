@@ -11,8 +11,10 @@ describe("skill documentation", () => {
     expect(skill).toContain("--url");
     expect(skill).toContain("--out-dir");
     expect(skill).toContain("--run-id");
+    expect(skill).toContain("--jina");
     expect(skill).toContain("--no-jina");
-    expect(skill).toContain("Use Jina for non-file pages");
+    expect(skill).toContain("Use Jina only when `--jina` is explicitly set");
+    expect(skill).toContain("external service");
     expect(skill).toContain("fewer than 2 headings");
     expect(skill).toContain("Playwright capture fails for any page");
     expect(skill).toContain("Jina fallback warnings and errors do not abort");
@@ -31,6 +33,7 @@ describe("skill documentation", () => {
     expect(schema).toContain("warnings");
     expect(schema).toContain("errors");
     expect(schema).toContain("top-level `warnings` with URL context");
+    expect(schema).toContain("average page confidence");
     expect(rules).toContain("Do not invent dark mode");
   });
 });

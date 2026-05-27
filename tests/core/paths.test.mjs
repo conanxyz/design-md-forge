@@ -17,4 +17,12 @@ describe("output paths", () => {
     expect(paths.designPath).toBe(path.join(runDir, "DESIGN.md"));
     expect(paths.screenshotDir).toBe(path.join(runDir, "screenshots"));
   });
+
+  it("rejects run IDs that can escape the run directory", () => {
+    expect(() => buildRunPaths({
+      rootDir: "/repo",
+      domain: "example.com",
+      runId: "../../outside"
+    })).toThrow("--run-id must be a single path-safe segment");
+  });
 });

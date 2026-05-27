@@ -1,5 +1,55 @@
 import { normalizeInputUrl } from "../core/url.mjs";
 
+function isPrivateIpv4(hostname) {
+  const parts = hostname.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+
+  const [a, b] = parts;
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 169 && b === 254) ||
+    a === 0
+  );
+}
+
+export function prepareJinaTargetUrl(url) {
+  const normalizedUrl = normalizeInputUrl(url);
+  const parsed = new URL(normalizedUrl);
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (parsed.protocol === "file:") {
+    return { error: "Jina does not support file:// URLs", normalizedUrl };
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { error: "Unsupported URL scheme", normalizedUrl };
+  }
+
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    hostname.endsWith(".internal") ||
+    hostname.endsWith(".test") ||
+    isPrivateIpv4(hostname) ||
+    hostname === "::1" ||
+    hostname.startsWith("fe80:")
+  ) {
+    return { error: "Jina fallback is blocked for localhost, private, or internal URLs", normalizedUrl };
+  }
+
+  parsed.username = "";
+  parsed.password = "";
+  parsed.search = "";
+  parsed.hash = "";
+  return { normalizedUrl, targetUrl: parsed.toString() };
+}
+
 function buildResult({
   url,
   markdown = "",
@@ -30,20 +80,20 @@ function errorResult({ url, error, raw }) {
 }
 
 export async function readWithJina({ url, fetchImpl = fetch }) {
-  let normalizedUrl;
+  let prepared;
   try {
-    normalizedUrl = normalizeInputUrl(url);
+    prepared = prepareJinaTargetUrl(url);
   } catch (error) {
     return errorResult({ url, error });
   }
 
-  if (/^file:\/\//i.test(normalizedUrl)) {
-    return errorResult({ url: normalizedUrl, error: "Jina does not support file:// URLs" });
+  if (prepared.error) {
+    return errorResult({ url: prepared.normalizedUrl, error: prepared.error });
   }
 
   let response;
   try {
-    response = await fetchImpl(`https://r.jina.ai/${normalizedUrl}`, {
+    response = await fetchImpl(`https://r.jina.ai/${prepared.targetUrl}`, {
       headers: {
         "x-no-cache": "true",
         "x-respond-with": "markdown",
@@ -51,14 +101,14 @@ export async function readWithJina({ url, fetchImpl = fetch }) {
       }
     });
   } catch (error) {
-    return errorResult({ url: normalizedUrl, error });
+    return errorResult({ url: prepared.normalizedUrl, error });
   }
 
   let markdown;
   try {
     markdown = await response.text();
   } catch (error) {
-    return errorResult({ url: normalizedUrl, error, raw: { status: response.status } });
+    return errorResult({ url: prepared.normalizedUrl, error, raw: { status: response.status } });
   }
 
   const warnings = [];
@@ -68,10 +118,10 @@ export async function readWithJina({ url, fetchImpl = fetch }) {
   const confidence = markdown.length > 1500 ? 0.82 : 0.55;
 
   return buildResult({
-    url: normalizedUrl,
+    url: prepared.normalizedUrl,
     markdown,
     warnings,
     confidence: response.ok ? confidence : Math.min(confidence, 0.35),
-    raw: { status: response.status }
+    raw: { status: response.status, targetUrl: prepared.targetUrl }
   });
 }

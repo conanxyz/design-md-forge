@@ -76,6 +76,7 @@ describe("analyze-site CLI", () => {
         urls: ["https://example.com"],
         rootDir,
         runId: "2026-05-27-153013",
+        useJina: true,
         capture: async ({ url }) => createCapturedPage({ url }),
         read: async () => ({
           markdown: "# Example\n\nJina fallback copy.",
@@ -108,6 +109,7 @@ describe("analyze-site CLI", () => {
         urls: ["https://example.com"],
         rootDir,
         runId: "2026-05-27-153014",
+        useJina: true,
         capture: async ({ url }) => createCapturedPage({ url }),
         read: async () => ({
           markdown: "",
@@ -132,5 +134,11 @@ describe("analyze-site CLI", () => {
     expect(() => parseArgs(["--url"])).toThrow("--url requires a value");
     expect(() => parseArgs(["--out-dir", "--run-id", "abc"])).toThrow("--out-dir requires a value");
     expect(() => parseArgs(["--run-id"])).toThrow("--run-id requires a value");
+  });
+
+  it("requires explicit Jina opt-in and rejects unknown options", () => {
+    expect(parseArgs(["--url", "https://example.com"]).useJina).toBe(false);
+    expect(parseArgs(["--url", "https://example.com", "--jina"]).useJina).toBe(true);
+    expect(() => parseArgs(["--url", "https://example.com", "--jin"])).toThrow("Unknown option: --jin");
   });
 });
