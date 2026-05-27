@@ -1,16 +1,43 @@
+function parseRgbColor(value) {
+  const match = value.trim().match(/^rgba?\(\s*(.*?)\s*\)$/i);
+  if (!match) return null;
+
+  const body = match[1];
+  if (body.includes(",")) {
+    const parts = body.split(",").map((part) => part.trim());
+    if (parts.length < 3) return null;
+    return {
+      r: parts[0],
+      g: parts[1],
+      b: parts[2],
+      alpha: parts[3]
+    };
+  }
+
+  const [channelsBody, alphaBody] = body.split("/").map((part) => part.trim());
+  const channels = channelsBody.split(/\s+/);
+  if (channels.length < 3) return null;
+  return {
+    r: channels[0],
+    g: channels[1],
+    b: channels[2],
+    alpha: alphaBody
+  };
+}
+
 function isTransparent(value) {
   const trimmed = value.trim().toLowerCase();
   if (trimmed === "transparent") return true;
 
-  const rgba = trimmed.match(/rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(0(?:\.0+)?)\s*\)/i);
-  return Boolean(rgba);
+  const rgb = parseRgbColor(trimmed);
+  return rgb?.alpha !== undefined && Number(rgb.alpha) === 0;
 }
 
 export function normalizeColor(value) {
   if (!value || isTransparent(value)) return null;
-  const rgb = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  const rgb = parseRgbColor(value);
   if (!rgb) return value.trim().toLowerCase();
-  const [, r, g, b] = rgb;
+  const { r, g, b } = rgb;
   return `#${[r, g, b].map((part) => Number(part).toString(16).padStart(2, "0")).join("")}`;
 }
 
@@ -24,14 +51,15 @@ function roleForColor(style, property) {
 function pushColor(colors, style, property) {
   const value = normalizeColor(style[property]);
   if (!value) return;
+  const roleCandidate = roleForColor(style, property);
   colors.push({
     value,
     property,
     selector: style.selector,
     tag: style.tag,
     sampleText: style.text,
-    roleCandidate: roleForColor(style, property),
-    confidence: property === "backgroundColor" && roleForColor(style, property) === "interactive" ? 0.8 : 0.6
+    roleCandidate,
+    confidence: property === "backgroundColor" && roleCandidate === "interactive" ? 0.8 : 0.6
   });
 }
 

@@ -4,8 +4,15 @@ import { extractTokensFromComputedStyles, normalizeColor } from "../../scripts/c
 describe("token extraction", () => {
   it("normalizes rgb colors to hex", () => {
     expect(normalizeColor("rgb(99, 91, 255)")).toBe("#635bff");
+    expect(normalizeColor("rgb( 99, 91, 255)")).toBe("#635bff");
+    expect(normalizeColor("rgb(99 91 255 / 1)")).toBe("#635bff");
     expect(normalizeColor("rgba(0, 0, 0, 0)")).toBe(null);
     expect(normalizeColor("rgba(99, 91, 255, 0)")).toBe(null);
+    expect(normalizeColor("rgba(99,91,255,0)")).toBe(null);
+    expect(normalizeColor("rgba( 99, 91, 255, 0)")).toBe(null);
+    expect(normalizeColor("rgb(99 91 255 / 0)")).toBe(null);
+    expect(normalizeColor("transparent")).toBe(null);
+    expect(normalizeColor(" ReBeCCaPurPle ")).toBe("rebeccapurple");
   });
 
   it("extracts colors, typography, spacing, radii, and shadows from computed styles", () => {
@@ -40,5 +47,17 @@ describe("token extraction", () => {
     expect(tokens.spacing).toContainEqual(expect.objectContaining({ value: "12px 16px" }));
     expect(tokens.radii).toContainEqual(expect.objectContaining({ value: "8px" }));
     expect(tokens.shadows).toContainEqual(expect.objectContaining({ value: "rgba(0, 0, 0, 0.12) 0px 8px 24px" }));
+  });
+
+  it("does not add color tokens for transparent backgrounds", () => {
+    const tokens = extractTokensFromComputedStyles([
+      {
+        selector: ".ghost",
+        tag: "div",
+        backgroundColor: "rgb(99 91 255 / 0)"
+      }
+    ]);
+
+    expect(tokens.colors).toEqual([]);
   });
 });
