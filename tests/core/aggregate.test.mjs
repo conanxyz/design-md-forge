@@ -139,4 +139,33 @@ describe("page aggregation", () => {
     ]);
     expect(aggregate.confidence.overall).toBe(0.9);
   });
+
+  it("returns empty aggregates for partial page objects", () => {
+    const aggregate = aggregatePages([{ tokens: {}, components: {} }, {}]);
+
+    expect(aggregate).toEqual({
+      colors: [],
+      typographyScale: [],
+      spacingScale: [],
+      radiusScale: [],
+      shadows: [],
+      componentPatterns: [],
+      confidence: { overall: 0 }
+    });
+  });
+
+  it("keeps the collection kind when component candidates include kind", () => {
+    const aggregate = aggregatePages([
+      {
+        tokens: {},
+        components: {
+          buttons: [{ kind: "wrong", confidence: 0.5 }]
+        }
+      }
+    ]);
+
+    expect(aggregate.componentPatterns).toEqual([
+      { kind: "buttons", confidence: 0.5 }
+    ]);
+  });
 });

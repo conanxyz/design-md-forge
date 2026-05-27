@@ -11,13 +11,13 @@ function countByValue(items, valueKey) {
 }
 
 export function aggregatePages(pages) {
-  const colors = pages.flatMap((page) => page.tokens.colors);
-  const typography = pages.flatMap((page) => page.tokens.typography);
-  const spacing = pages.flatMap((page) => page.tokens.spacing);
-  const radii = pages.flatMap((page) => page.tokens.radii);
-  const shadows = pages.flatMap((page) => page.tokens.shadows);
-  const componentPatterns = pages.flatMap((page) => Object.entries(page.components).flatMap(([kind, values]) => {
-    return values.map((value) => ({ kind, ...value }));
+  const colors = pages.flatMap((page) => page.tokens?.colors || []);
+  const typography = pages.flatMap((page) => page.tokens?.typography || []);
+  const spacing = pages.flatMap((page) => page.tokens?.spacing || []);
+  const radii = pages.flatMap((page) => page.tokens?.radii || []);
+  const shadows = pages.flatMap((page) => page.tokens?.shadows || []);
+  const componentPatterns = pages.flatMap((page) => Object.entries(page.components || {}).flatMap(([kind, values]) => {
+    return (values || []).map((value) => ({ ...value, kind }));
   }));
   const overall = pages.length === 0 ? 0 : Math.max(...pages.map((page) => page.confidence || 0));
 
