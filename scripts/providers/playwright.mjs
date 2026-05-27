@@ -155,7 +155,7 @@ export async function validateScreenshot(pathname) {
   }
 }
 
-function getBlockedReasons({ text, title }) {
+export function getBlockedReasons({ text, title, passwordFieldCount = 0, meaningfulVisibleElementCount = 0 }) {
   const haystack = `${title || ""}\n${text || ""}`.toLowerCase();
   const checks = [
     ["captcha", "CAPTCHA challenge detected"],
@@ -165,8 +165,9 @@ function getBlockedReasons({ text, title }) {
     ["403 forbidden", "forbidden page detected"]
   ];
   const reasons = checks.filter(([needle]) => haystack.includes(needle)).map(([, message]) => message);
-  const loginLike = /\b(sign in|log in|login)\b/.test(haystack);
-  if (loginLike && (text || "").length < 1000) {
+  const authTitle = /^(sign in|log in|login|authenticate|authentication|required sign in|required login)$/i.test((title || "").trim());
+  const authCopy = /\b(sign in required|login required|please sign in|please log in|authentication required)\b/.test(haystack);
+  if ((passwordFieldCount > 0 || authTitle || authCopy) && meaningfulVisibleElementCount < 8) {
     reasons.push("login wall detected");
   }
   return reasons;
@@ -236,6 +237,7 @@ async function collectPageData(page, selectors) {
       textLength: text.length,
       text: text.slice(0, 20000),
       meaningfulVisibleElementCount,
+      passwordFieldCount: document.querySelectorAll("input[type='password']").length,
       cssVars,
       computedStyles,
       headings: [...document.querySelectorAll("h1,h2,h3")].map((node) => node.textContent.trim()).filter(Boolean).slice(0, 30),

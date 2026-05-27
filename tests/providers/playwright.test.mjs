@@ -1,6 +1,37 @@
+import http from "node:http";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import zlib from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { buildRepresentativeSelectors, buildScreenshotName, isLikelyBlankPng, summarizeCaptureWarnings } from "../../scripts/providers/playwright.mjs";
+import {
+  buildRepresentativeSelectors,
+  buildScreenshotName,
+  captureWithPlaywright,
+  getBlockedReasons,
+  isLikelyBlankPng,
+  summarizeCaptureWarnings
+} from "../../scripts/providers/playwright.mjs";
+
+async function withServer(handler, callback) {
+  const server = http.createServer(handler);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    return await callback(`http://127.0.0.1:${port}`);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function withScreenshotDir(callback) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "design-md-forge-playwright-"));
+  try {
+    return await callback(dir);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
 
 function chunk(type, data) {
   const length = Buffer.alloc(4);
@@ -75,5 +106,79 @@ describe("Playwright capture utilities", () => {
 
     expect(isLikelyBlankPng(blank)).toBe(true);
     expect(isLikelyBlankPng(nonBlank)).toBe(false);
+  });
+
+  it("does not treat sparse pages with a login nav link as login walls", () => {
+    expect(getBlockedReasons({
+      title: "Product",
+      text: "Beautiful analytics for teams. Sign in",
+      passwordFieldCount: 0,
+      meaningfulVisibleElementCount: 6
+    })).toEqual([]);
+  });
+
+  it("detects focused login-wall evidence", () => {
+    expect(getBlockedReasons({
+      title: "Login",
+      text: "Please sign in required",
+      passwordFieldCount: 1,
+      meaningfulVisibleElementCount: 3
+    })).toContain("login wall detected");
+  });
+});
+
+describe("Playwright capture hard failures", () => {
+  it("fails on HTTP error document responses", async () => {
+    await withServer((request, response) => {
+      response.writeHead(500, { "Content-Type": "text/html" });
+      response.end("<main><h1>Server error</h1></main>");
+    }, async (baseUrl) => {
+      await withScreenshotDir(async (screenshotDir) => {
+        await expect(captureWithPlaywright({
+          url: baseUrl,
+          screenshotDir,
+          viewport: { width: 800, height: 600 }
+        })).rejects.toThrow("Page returned HTTP 500");
+      });
+    });
+  });
+
+  it("fails on access-blocked pages", async () => {
+    const copy = "Access denied. ".repeat(30);
+    await withServer((request, response) => {
+      response.writeHead(200, { "Content-Type": "text/html" });
+      response.end(`<main><h1>Access denied</h1><p>${copy}</p><button>Retry</button></main>`);
+    }, async (baseUrl) => {
+      await withScreenshotDir(async (screenshotDir) => {
+        await expect(captureWithPlaywright({
+          url: baseUrl,
+          screenshotDir,
+          viewport: { width: 800, height: 600 }
+        })).rejects.toThrow("Access-blocked page detected");
+      });
+    });
+  });
+
+  it("fails when screenshots are blank", async () => {
+    const copy = "Invisible white copy ".repeat(30);
+    await withServer((request, response) => {
+      response.writeHead(200, { "Content-Type": "text/html" });
+      response.end(`
+        <main style="min-height:600px;background:white;color:white">
+          <h1>${copy}</h1>
+          <p>${copy}</p>
+          <button style="color:white;background:white;border:0">Continue</button>
+          <a style="color:white" href="/">Docs</a>
+        </main>
+      `);
+    }, async (baseUrl) => {
+      await withScreenshotDir(async (screenshotDir) => {
+        await expect(captureWithPlaywright({
+          url: baseUrl,
+          screenshotDir,
+          viewport: { width: 800, height: 600 }
+        })).rejects.toThrow("Screenshot appears blank");
+      });
+    });
   });
 });

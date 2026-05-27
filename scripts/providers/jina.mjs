@@ -17,10 +17,31 @@ function isPrivateIpv4(hostname) {
   );
 }
 
+function normalizeHostnameForPolicy(hostname) {
+  let normalized = hostname.toLowerCase();
+  if (normalized.endsWith(".")) normalized = normalized.slice(0, -1);
+  if (normalized.startsWith("[") && normalized.endsWith("]")) {
+    normalized = normalized.slice(1, -1);
+  }
+  return normalized;
+}
+
+function isPrivateIpv6(hostname) {
+  return (
+    hostname === "::1" ||
+    hostname.startsWith("fe80:") ||
+    hostname.startsWith("fe9") ||
+    hostname.startsWith("fea") ||
+    hostname.startsWith("feb") ||
+    hostname.startsWith("fc") ||
+    hostname.startsWith("fd")
+  );
+}
+
 export function prepareJinaTargetUrl(url) {
   const normalizedUrl = normalizeInputUrl(url);
   const parsed = new URL(normalizedUrl);
-  const hostname = parsed.hostname.toLowerCase();
+  const hostname = normalizeHostnameForPolicy(parsed.hostname);
 
   if (parsed.protocol === "file:") {
     return { error: "Jina does not support file:// URLs", normalizedUrl };
@@ -37,8 +58,7 @@ export function prepareJinaTargetUrl(url) {
     hostname.endsWith(".internal") ||
     hostname.endsWith(".test") ||
     isPrivateIpv4(hostname) ||
-    hostname === "::1" ||
-    hostname.startsWith("fe80:")
+    isPrivateIpv6(hostname)
   ) {
     return { error: "Jina fallback is blocked for localhost, private, or internal URLs", normalizedUrl };
   }

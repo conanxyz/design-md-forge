@@ -91,6 +91,28 @@ describe("Jina Reader provider", () => {
     expect(prepareJinaTargetUrl("http://10.0.0.2").error).toBe("Jina fallback is blocked for localhost, private, or internal URLs");
   });
 
+  it("blocks trailing-dot internal hostnames", () => {
+    for (const url of [
+      "http://localhost.",
+      "http://foo.local.",
+      "http://svc.internal.",
+      "http://example.test."
+    ]) {
+      expect(prepareJinaTargetUrl(url).error).toBe("Jina fallback is blocked for localhost, private, or internal URLs");
+    }
+  });
+
+  it("blocks private IPv6 hostnames", () => {
+    for (const url of [
+      "http://[::1]/",
+      "http://[fe80::1]/",
+      "http://[fc00::1]/",
+      "http://[fd12:3456::1]/"
+    ]) {
+      expect(prepareJinaTargetUrl(url).error).toBe("Jina fallback is blocked for localhost, private, or internal URLs");
+    }
+  });
+
   it("returns errors and zero confidence when response text rejects", async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: true,

@@ -19,10 +19,12 @@ describe("output paths", () => {
   });
 
   it("rejects run IDs that can escape the run directory", () => {
-    expect(() => buildRunPaths({
-      rootDir: "/repo",
-      domain: "example.com",
-      runId: "../../outside"
-    })).toThrow("--run-id must be a single path-safe segment");
+    for (const runId of ["../../outside", ".", ".."]) {
+      expect(() => buildRunPaths({
+        rootDir: "/repo",
+        domain: "example.com",
+        runId
+      })).toThrow("--run-id must be a single path-safe segment");
+    }
   });
 });
