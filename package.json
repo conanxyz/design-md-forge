@@ -1,0 +1,21 @@
+{
+  "name": "design-md-forge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Skill scripts for generating DESIGN.md evidence from website visual style.",
+  "scripts": {
+    "analyze": "node scripts/analyze-site.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "playwright": "^1.52.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
