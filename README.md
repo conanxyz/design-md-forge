@@ -1,49 +1,72 @@
 # design-md-forge
 
-`design-md-forge` 是一个用于从网站视觉证据生成 `DESIGN.md` 的 Codex skill 项目。
+[English](README.md) | [中文](README.zh-CN.md)
 
-它的核心思路是：
+`design-md-forge` is a Codex skill for producing `DESIGN.md` design-system guidance from website visual evidence.
 
-1. 用 Playwright 打开目标页面，采集截图、CSS 变量、代表性元素 computed style、页面结构和基础交互文案。
-2. 生成统一的 `analysis.json`，作为 LLM/agent 写设计文档的证据输入。
-3. 由 agent 根据 `analysis.json` 和生成规则写出面向用户的 `DESIGN.md`。
+The command-line script captures trustworthy evidence into `analysis.json` and screenshots. An agent then reads that evidence and writes the final `DESIGN.md` next to it.
 
-CLI 不会直接生成最终 `DESIGN.md`，它负责生成可信证据。最终 `DESIGN.md` 由 agent 写在同一个 run 目录下。
+The CLI intentionally does not write the final `DESIGN.md` by itself.
 
-## 适用场景
+## Agent Install Prompt
 
-- 从一个产品官网、Web App、文档站或设计参考站提取视觉风格。
-- 为后续原型开发生成一份可执行的 `DESIGN.md`。
-- 把颜色、排版、间距、圆角、阴影、组件模式整理成 LLM 可消费的结构化输入。
-- 在只给出一个 URL 时，先分析单页；如需要多页面覆盖，再补充 2-4 个关键同域 URL。
+Copy this prompt into your coding agent when you want it to install and use the skill:
 
-## 不适用场景
+```text
+Install the skill: `github.com/conanxyz/design-md-forge`
 
-- 登录后页面、需要人工操作的复杂流程、强验证码页面。
-- 深度整站 crawl。
-- 精准还原完整设计系统或品牌规范。
-- 用 Jina/Markdown 内容替代高保真视觉分析。
+Scope the work to this skill only. After install, read the skill's metadata and help me finish setup based only on what you can verify from that page — don't invent missing requirements. Ask before making any broader environment changes.
+```
 
-V1 明确不使用 Firecrawl、AgentKey、Browser Agent、Stagehand、Web UI、MCP 或深度爬取。
+## What This Skill Does
 
-## 安装
+- Captures website visual style using Playwright.
+- Extracts CSS variables, computed styles, screenshots, headings, navigation labels, CTA labels, links, and component candidates.
+- Normalizes evidence into `analysis.json`.
+- Optionally uses Jina Reader as an explicit text fallback for public HTTP(S) pages.
+- Gives an agent the structured evidence needed to write a practical `DESIGN.md`.
 
-要求 Node.js 20 或更高版本。
+## Good Fits
+
+- Product websites.
+- Web apps with public pages.
+- Documentation sites.
+- Design reference pages.
+- Generating a design brief for an MVP or prototype.
+- Extracting visual direction before building a frontend.
+
+## Poor Fits
+
+- Login-only pages.
+- CAPTCHA or access-blocked pages.
+- Deep whole-site crawling.
+- Multi-step browser workflows.
+- Pixel-perfect design-system reconstruction.
+- Replacing visual evidence with Markdown-only scraping.
+
+V1 intentionally does not use Firecrawl, AgentKey, Browser Agent, Stagehand, Web UI, MCP, or deep crawling.
+
+## Requirements
+
+- Node.js 20 or newer.
+- Chromium installed through Playwright.
+
+Install dependencies:
 
 ```bash
 npm install
 npx playwright install chromium
 ```
 
-## 快速开始
+## Quick Start
 
-分析一个 URL：
+Analyze one URL:
 
 ```bash
 npm run analyze -- --url "https://example.com"
 ```
 
-分析多个 URL：
+Analyze several pages:
 
 ```bash
 npm run analyze -- \
@@ -52,7 +75,7 @@ npm run analyze -- \
   --url "https://example.com/docs"
 ```
 
-使用固定 run id，方便复现输出路径：
+Use a stable run id:
 
 ```bash
 npm run analyze -- \
@@ -60,30 +83,30 @@ npm run analyze -- \
   --run-id "example-home"
 ```
 
-输出会类似：
+Example output:
 
 ```text
 analysis.json written to /path/to/design-output/example.com/example-home/analysis.json
 DESIGN.md should be written to /path/to/design-output/example.com/example-home/DESIGN.md
 ```
 
-然后由 agent 读取 `analysis.json`，根据 `references/design-md-generation-rules.md` 写出 `DESIGN.md`。
+Next, ask the agent to read `analysis.json` and write `DESIGN.md` using the rules in [references/design-md-generation-rules.md](references/design-md-generation-rules.md).
 
-## CLI 参数
+## CLI Options
 
-| 参数 | 必填 | 说明 |
+| Option | Required | Description |
 | --- | --- | --- |
-| `--url <url>` | 是 | 要分析的 URL。可以重复传入多个。支持 `https://`、`http://` 和 `file://`。没有协议的输入会按 `https://` 规范化。 |
-| `--out-dir <dir>` | 否 | 输出根目录，默认是当前工作目录。 |
-| `--run-id <id>` | 否 | 输出 run 目录名，默认按当前时间生成。只能包含字母、数字、点、下划线和连字符，且不能是 `.` 或 `..`。 |
-| `--jina` | 否 | 显式启用 Jina Reader fallback。默认关闭。 |
-| `--no-jina` | 否 | 保持 Jina Reader 关闭。默认就是关闭。 |
+| `--url <url>` | Yes | Input URL to analyze. Repeat it for multiple pages. Supports `https://`, `http://`, and `file://`. Protocol-less URLs are normalized to `https://`. |
+| `--out-dir <dir>` | No | Output root directory. Defaults to the current working directory. |
+| `--run-id <id>` | No | Stable output run directory. Defaults to a timestamp. It must be a single path-safe segment and cannot be `.` or `..`. |
+| `--jina` | No | Explicitly enables Jina Reader fallback for eligible public HTTP(S) URLs. Disabled by default. |
+| `--no-jina` | No | Keeps Jina Reader disabled. This is the default. |
 
-未知参数会直接报错，避免拼写错误导致静默失败。
+Unknown flags fail fast so typos do not silently change a run.
 
-## 输出结构
+## Output Layout
 
-默认输出：
+Default output:
 
 ```text
 design-output/
@@ -95,26 +118,26 @@ design-output/
       DESIGN.md
 ```
 
-其中：
+Files:
 
-- `analysis.json` 由 CLI 生成。
-- `screenshots/` 由 Playwright 生成。
-- `DESIGN.md` 由 agent/LLM 根据 `analysis.json` 生成。
+- `analysis.json`: generated by the CLI.
+- `screenshots/`: generated by Playwright.
+- `DESIGN.md`: written by the agent/LLM after reading `analysis.json`.
 
-`design-output/` 被 `.gitignore` 忽略，默认不会提交进仓库。
+`design-output/` is ignored by Git.
 
-## analysis.json 内容
+## analysis.json
 
-`analysis.json` 是生成 `DESIGN.md` 的主要证据文件。
+`analysis.json` is the evidence source for `DESIGN.md` generation.
 
-顶层字段：
+Top-level fields:
 
-- `target`: 域名、输入 URL、实际分析 URL、采集时间。
-- `pages`: 每个页面一份分析结果。
-- `aggregate`: 多页面聚合后的 token 和组件模式。
-- `warnings`: 运行级警告。
+- `target`: domain, input URLs, analyzed URLs, and capture time.
+- `pages`: one analysis object per page.
+- `aggregate`: deduplicated tokens, component patterns, and confidence summaries.
+- `warnings`: run-level warnings.
 
-每个页面包含：
+Each page contains:
 
 - `url`
 - `title`
@@ -128,31 +151,31 @@ design-output/
 - `links`
 - `confidence`
 - `warnings`
-- 可选 `fallbacks.jina`
+- optional `fallbacks.jina`
 
-聚合 confidence 包含：
+`aggregate.confidence` contains:
 
-- `overall`: 页面平均置信度。
-- `bestPage`: 最高页面置信度。
-- `weakestPage`: 最低页面置信度。
-- `pageCount`: 分析页面数。
+- `overall`: average page confidence.
+- `bestPage`: highest page confidence.
+- `weakestPage`: lowest page confidence.
+- `pageCount`: analyzed page count.
 
-更详细的 schema 说明见 [references/analysis-schema.md](references/analysis-schema.md)。
+See [references/analysis-schema.md](references/analysis-schema.md) for the schema notes.
 
-## DESIGN.md 生成规则
+## DESIGN.md Generation Rules
 
-生成 `DESIGN.md` 时应该遵守：
+When writing `DESIGN.md`, the agent should:
 
-- 优先使用 Playwright 捕获到的视觉证据。
-- 优先写具体观察值，不要过早抽象命名 token。
-- 高置信证据可以成为规则。
-- 低置信证据只能写成观察或推测。
-- 不要凭空发明 dark mode、复杂表单状态、动画系统、图标系统或响应式行为。
-- 如果只分析了一个 URL，需要在 `Confidence Notes` 里说明证据范围有限。
-- 如果某类组件没有被观察到，不要写详细组件规则。
-- 如果截图或 computed styles 失败，不要生成 `DESIGN.md`，应要求补充 URL 或重新采集证据。
+- Use observed Playwright visual evidence first.
+- Prefer concrete values before naming abstract tokens.
+- Treat high-confidence evidence as rules.
+- Treat low-confidence evidence as observations or weak inferences.
+- Avoid inventing dark mode, complex form states, animation systems, icon systems, or responsive behavior without evidence.
+- Mention in `Confidence Notes` when only one URL was analyzed.
+- Avoid detailed component rules for components that were not observed.
+- Stop and ask for more evidence if screenshots or computed styles failed.
 
-每份 `DESIGN.md` 至少包含：
+Every generated `DESIGN.md` should include:
 
 - YAML frontmatter with source URLs and core tokens.
 - Visual Theme.
@@ -165,20 +188,22 @@ design-output/
 - Do's and Don'ts.
 - Confidence Notes.
 
-生成规则见 [references/design-md-generation-rules.md](references/design-md-generation-rules.md)。
+See [references/design-md-generation-rules.md](references/design-md-generation-rules.md).
 
-## Playwright 视觉采集
+## Playwright Capture
 
-Playwright 是主证据来源。它会采集：
+Playwright is the primary visual evidence provider.
 
-- desktop screenshot。
-- CSS variables。
-- 代表性元素 computed styles。
-- heading、landmark、navigation、CTA 文案。
-- links。
-- button、card、form、nav、hero 等组件候选。
+It captures:
 
-代表性选择器包括：
+- Desktop screenshot.
+- CSS variables.
+- Representative computed styles.
+- Headings, landmarks, navigation labels, and CTA labels.
+- Links.
+- Button, card, form, nav, and hero candidates.
+
+Representative selectors include:
 
 ```text
 body, header, nav, main, section, article, footer,
@@ -187,74 +212,75 @@ pre, code,
 [class*='button'], [class*='card'], [class*='hero'], [class*='grid']
 ```
 
-Playwright 会对以下情况硬失败：
+Playwright hard-fails when:
 
-- 页面主响应 HTTP 状态码大于等于 400。
-- `body` 长时间不可见。
-- 页面没有有意义的可见内容。
-- 检测到 CAPTCHA、人机验证、access denied、403 或明确 login wall。
-- 截图文件无效、异常小或疑似空白。
+- The main document response is HTTP `>= 400`.
+- `body` stays invisible.
+- The page has no meaningful visible content.
+- CAPTCHA, human verification, access denied, 403, or a clear login wall is detected.
+- The screenshot is invalid, unexpectedly small, or likely blank.
 
-如果普通 screenshot 超时，会尝试 CDP screenshot fallback，并在 warnings 中记录。
+If the normal screenshot path times out, the provider attempts a CDP screenshot fallback and records a warning.
 
-## Jina Reader fallback
+## Jina Reader Fallback
 
-Jina Reader 默认关闭。只有显式传入 `--jina` 时才会尝试使用。
+Jina Reader is disabled by default. It only runs when `--jina` is explicitly passed.
 
-触发条件：
+It is eligible when:
 
-- `--jina` 已开启。
-- URL 不是 `file://`。
-- Playwright 捕获到的 headings 少于 2 个。
+- `--jina` is enabled.
+- The URL is not `file://`.
+- Playwright captured fewer than 2 headings.
 
-Jina 只作为语义/文本 fallback，用来补充页面语义、标题和内容结构。它不能覆盖 Playwright 的视觉证据。
+Jina is used only as semantic/text fallback. It can clarify page meaning, headings, and content structure. It must not override Playwright visual evidence.
 
-安全策略：
+Safety policy:
 
-- 不发送 `file://` URL。
-- 不发送 localhost、private network、link-local、internal、test 域名。
-- 阻止 IPv4、IPv6、IPv4-mapped IPv6 的私网/回环地址。
-- 发给 Jina 前会移除 username、password、query string 和 hash。
+- Never sends `file://` URLs.
+- Blocks localhost, private network, link-local, internal, and test hostnames.
+- Blocks private IPv4, IPv6, and IPv4-mapped IPv6 addresses.
+- Removes username, password, query string, and hash before sending a URL to Jina.
 
-如果 Jina 失败，只记录 warning/error；只要 Playwright 证据可用，整体运行不会因此中断。
+If Jina fails, the run records warnings/errors. It does not abort when Playwright evidence is available.
 
-## 置信度
+## Confidence
 
-单页置信度由以下证据加权：
+Page confidence is scored from:
 
-- 页面文本长度。
-- CSS 变量数量。
-- representative computed styles 数量。
-- 是否有截图。
+- Text length.
+- CSS variable count.
+- Representative computed style count.
+- Screenshot availability.
 
-如果页面有足够视觉证据，会设置最低视觉置信度 floor。
+If a page has enough visual evidence, the analyzer applies a visual-evidence confidence floor.
 
-多页面聚合时，`overall` 使用平均值，而不是最高值，避免一个好页面掩盖多个弱页面。
+Multi-page `overall` confidence is an average, not the maximum, so one strong page cannot hide weak pages.
 
-## 失败策略
+## Failure Policy
 
-应该停止生成 `DESIGN.md` 的情况：
+Stop instead of generating `DESIGN.md` when:
 
-- 任一页面 Playwright 捕获失败。
-- 页面不可达。
-- body 不可见。
-- 页面疑似登录墙、验证码或访问阻断。
-- 截图空白或无效。
+- Any Playwright page capture fails.
+- A page cannot be reached.
+- The body remains invisible.
+- The page appears blocked by login, CAPTCHA, or access control.
+- The screenshot is blank or invalid.
 
-可以继续但需要写入 Confidence Notes 的情况：
+Continue with warnings when:
 
-- CSS variables 很少。
-- computed styles 证据较少。
-- 页面偏视觉化，文本较短。
-- Jina fallback 失败。
-- 只分析了一个 URL。
+- CSS variables are sparse.
+- Computed style evidence is thin.
+- Text is short because the page is mostly visual.
+- Explicit Jina fallback fails.
+- Only one URL was analyzed.
 
-## 项目结构
+## Project Structure
 
 ```text
 .
 ├── SKILL.md
 ├── README.md
+├── README.zh-CN.md
 ├── package.json
 ├── references/
 │   ├── analysis-schema.md
@@ -279,51 +305,46 @@ Jina 只作为语义/文本 fallback，用来补充页面语义、标题和内�
     └── providers/
 ```
 
-## 脚本说明
+## Scripts
+
+Run analysis:
 
 ```bash
-npm run analyze
+npm run analyze -- --url "https://example.com"
 ```
 
-运行网站分析 CLI。
+Run tests:
 
 ```bash
 npm test
 ```
 
-运行完整 Vitest 测试。
+Run tests in watch mode:
 
 ```bash
 npm run test:watch
 ```
 
-以 watch 模式运行测试。
+## Test Coverage
 
-## 测试覆盖
+The test suite covers:
 
-当前测试覆盖：
+- URL normalization.
+- Output path and run id safety.
+- Schema copying.
+- Token extraction.
+- Multi-page aggregation.
+- Confidence scoring.
+- Jina fallback behavior and URL sanitization.
+- Private/internal URL blocking, including IPv4, IPv6, and IPv4-mapped IPv6.
+- Playwright blank screenshot detection.
+- Playwright HTTP error, access-blocked, and blank screenshot hard failures.
+- CLI integration output.
+- Skill documentation expectations.
 
-- URL 规范化。
-- 输出路径和 run id 安全校验。
-- schema 深拷贝。
-- token 提取。
-- 聚合逻辑。
-- confidence 计算。
-- Jina fallback、URL sanitization 和私网阻断策略。
-- Playwright screenshot 空白检测。
-- Playwright HTTP error、access-blocked、blank screenshot hard failure。
-- CLI 集成输出。
-- skill 文档关键行为。
+## .gitignore Policy
 
-运行：
-
-```bash
-npm test
-```
-
-## .gitignore 策略
-
-仓库会忽略：
+The repository ignores local-only files such as:
 
 - `node_modules/`
 - `dist/`
@@ -337,32 +358,32 @@ npm test
 - `playwright-report/`
 - `blob-report/`
 - `.env*`
-- macOS/editor 临时文件
-- 本地规划文档 `design.md` 和 `docs/superpowers/`
+- macOS/editor temp files
+- local planning files such as `design.md` and `docs/superpowers/`
 
-这些通常是依赖、运行产物、测试产物、私密配置或本地规划文件，不应进入版本控制。
+Runtime outputs, screenshots, local planning notes, and dependencies should not be committed.
 
-## 常见工作流
+## Common Workflows
 
-### 只分析一个页面
+### Analyze one page
 
 ```bash
 npm run analyze -- --url "https://example.com" --run-id "example-home"
 ```
 
-然后读取：
+Read:
 
 ```text
 design-output/example.com/example-home/analysis.json
 ```
 
-再写：
+Write:
 
 ```text
 design-output/example.com/example-home/DESIGN.md
 ```
 
-### 分析多页面产品站
+### Analyze multiple pages
 
 ```bash
 npm run analyze -- \
@@ -372,9 +393,9 @@ npm run analyze -- \
   --run-id "example-design"
 ```
 
-多页面会聚合 token 和组件模式，`aggregate.confidence` 会显示总体、最佳、最弱页面的置信度。
+The analyzer aggregates tokens and component patterns across pages.
 
-### 显式启用 Jina fallback
+### Explicitly enable Jina
 
 ```bash
 npm run analyze -- \
@@ -383,21 +404,21 @@ npm run analyze -- \
   --jina
 ```
 
-只有在 Playwright headings 较少时才会触发 Jina。Jina 返回内容会写入 `fallbacks.jina`。
+Jina runs only when eligible and stores evidence under `fallbacks.jina`.
 
-## 已知限制
+## Known Limits
 
-- 目前只使用 desktop viewport。
-- 不自动 crawl 或自动发现关键页面。
-- 不处理登录态。
-- 不执行复杂点击、筛选、分页或多步骤交互。
-- 不直接生成最终 `DESIGN.md`，最终文档仍由 agent/LLM 根据证据写入。
-- 截图空白检测是轻量级像素采样，适合阻止明显失败截图，不等于完整视觉质量评估。
+- Desktop viewport only.
+- No automatic crawl or key-page discovery.
+- No logged-in state handling.
+- No complex clicking, filtering, pagination, or multi-step interaction.
+- Final `DESIGN.md` is written by an agent/LLM, not the CLI.
+- Blank screenshot detection is lightweight pixel sampling, not full visual quality evaluation.
 
-## 维护建议
+## Maintenance Notes
 
-- 修改 provider 行为后，优先补 `tests/providers/`。
-- 修改 schema 或聚合输出后，同步更新 `references/analysis-schema.md`。
-- 修改 skill 使用方式后，同步更新 `SKILL.md` 和本 README。
-- 增加新 provider 时，保持输出归一到当前 `analysis.json` schema。
-- 不要把 runtime output、规划文档、截图或本地依赖提交到仓库。
+- When provider behavior changes, update `tests/providers/`.
+- When schema or aggregation changes, update [references/analysis-schema.md](references/analysis-schema.md).
+- When skill usage changes, update `SKILL.md`, `README.md`, and `README.zh-CN.md`.
+- Keep new providers normalized to the existing `analysis.json` shape.
+- Do not commit runtime output, screenshots, local planning docs, or local dependencies.
