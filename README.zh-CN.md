@@ -293,28 +293,6 @@ npm run test:watch
 
 测试覆盖 URL 规范化、输出路径安全、schema 拷贝、token 提取、聚合、confidence、Jina URL 安全策略、Playwright 截图和硬失败路径、CLI 集成输出，以及 skill 文档关键行为。
 
-## .gitignore 策略
-
-仓库忽略本地产物和私有文件，包括：
-
-- `node_modules/`
-- `dist/`
-- `coverage/`
-- `.cache/`
-- `.vite/`
-- `design-output/`
-- `output/`
-- `.worktrees/`
-- `test-results/`
-- `playwright-report/`
-- `blob-report/`
-- `.env*`
-- macOS/editor 临时文件
-- `design.md`
-- `docs/superpowers/`
-
-不要提交运行输出、截图、本地规划文档或本地依赖。
-
 ## 已知限制
 
 - 不处理登录态。

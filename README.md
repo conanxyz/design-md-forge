@@ -362,27 +362,6 @@ The test suite covers:
 - CLI integration output.
 - Skill documentation expectations.
 
-## .gitignore Policy
-
-The repository ignores local-only files such as:
-
-- `node_modules/`
-- `dist/`
-- `coverage/`
-- `.cache/`
-- `.vite/`
-- `design-output/`
-- `output/`
-- `.worktrees/`
-- `test-results/`
-- `playwright-report/`
-- `blob-report/`
-- `.env*`
-- macOS/editor temp files
-- local planning files such as `design.md` and `docs/superpowers/`
-
-Runtime outputs, screenshots, local planning notes, and dependencies should not be committed.
-
 ## Common Workflows
 
 ### Analyze one page
