@@ -58,7 +58,7 @@ function paethPredictor(a, b, c) {
   return c;
 }
 
-export function isLikelyBlankPng(buffer) {
+export function summarizePngSamples(buffer) {
   const signature = "89504e470d0a1a0a";
   if (!Buffer.isBuffer(buffer) || buffer.subarray(0, 8).toString("hex") !== signature) {
     throw new Error("Screenshot is not a valid PNG");
@@ -101,10 +101,14 @@ export function isLikelyBlankPng(buffer) {
 
   const inflated = zlib.inflateSync(Buffer.concat(idatChunks));
   const stride = width * channels;
-  const sampleEveryX = Math.max(1, Math.floor(width / 120));
-  const sampleEveryY = Math.max(1, Math.floor(height / 120));
+  const sampleEveryX = Math.max(1, Math.floor(width / 160));
+  const sampleEveryY = Math.max(1, Math.floor(height / 160));
   let previous = Buffer.alloc(stride);
-  let firstPixel;
+  const buckets = new Set();
+  const sums = [0, 0, 0];
+  const sumSquares = [0, 0, 0];
+  let sampledPixels = 0;
+  let nonTransparentPixels = 0;
 
   for (let y = 0; y < height; y += 1) {
     const rowOffset = y * (stride + 1);
@@ -126,23 +130,43 @@ export function isLikelyBlankPng(buffer) {
     if (y % sampleEveryY === 0) {
       for (let x = 0; x < width; x += sampleEveryX) {
         const pixelOffset = x * channels;
-        const pixel = [
-          row[pixelOffset],
-          channels >= 3 ? row[pixelOffset + 1] : row[pixelOffset],
-          channels >= 3 ? row[pixelOffset + 2] : row[pixelOffset],
-          channels === 4 ? row[pixelOffset + 3] : 255
-        ];
-        if (!firstPixel) {
-          firstPixel = pixel;
-        } else if (pixel.some((value, index) => Math.abs(value - firstPixel[index]) > 3)) {
-          return false;
-        }
+        const r = row[pixelOffset];
+        const g = channels >= 3 ? row[pixelOffset + 1] : row[pixelOffset];
+        const b = channels >= 3 ? row[pixelOffset + 2] : row[pixelOffset];
+        const a = channels === 4 ? row[pixelOffset + 3] : 255;
+        sampledPixels += 1;
+        if (a > 8) nonTransparentPixels += 1;
+        buckets.add(`${Math.floor(r / 16)}:${Math.floor(g / 16)}:${Math.floor(b / 16)}:${Math.floor(a / 16)}`);
+        sums[0] += r;
+        sums[1] += g;
+        sums[2] += b;
+        sumSquares[0] += r * r;
+        sumSquares[1] += g * g;
+        sumSquares[2] += b * b;
       }
     }
     previous = row;
   }
 
-  return true;
+  const variances = sums.map((sum, index) => {
+    const mean = sum / sampledPixels;
+    return sumSquares[index] / sampledPixels - mean * mean;
+  });
+
+  return {
+    width,
+    height,
+    sampledPixels,
+    nonTransparentPixels,
+    distinctColorBuckets: buckets.size,
+    averageChannelVariance: variances.reduce((sum, value) => sum + value, 0) / variances.length
+  };
+}
+
+export function isLikelyBlankPng(buffer) {
+  const stats = summarizePngSamples(buffer);
+  if (stats.nonTransparentPixels === 0) return true;
+  return stats.distinctColorBuckets < 2 && stats.averageChannelVariance < 8;
 }
 
 export async function validateScreenshot(pathname) {

@@ -54,6 +54,14 @@ function pngFromRows({ width, height, rows }) {
   ]);
 }
 
+function solidRows({ width, height, rgb }) {
+  const row = [];
+  for (let x = 0; x < width; x += 1) {
+    row.push(...rgb);
+  }
+  return Array.from({ length: height }, () => row);
+}
+
 describe("Playwright capture utilities", () => {
   it("uses focused selectors for visual style evidence", () => {
     expect(buildRepresentativeSelectors()).toEqual(expect.arrayContaining([
@@ -92,20 +100,50 @@ describe("Playwright capture utilities", () => {
     expect(name.endsWith(".png")).toBe(true);
   });
 
-  it("detects single-color PNG screenshots as blank", () => {
+  it("detects low-variance single-color screenshots as blank", () => {
     const blank = pngFromRows({
-      width: 2,
-      height: 1,
-      rows: [[255, 255, 255, 255, 255, 255]]
-    });
-    const nonBlank = pngFromRows({
-      width: 2,
-      height: 1,
-      rows: [[255, 255, 255, 0, 0, 0]]
+      width: 4,
+      height: 4,
+      rows: solidRows({ width: 4, height: 4, rgb: [255, 255, 255] })
     });
 
     expect(isLikelyBlankPng(blank)).toBe(true);
-    expect(isLikelyBlankPng(nonBlank)).toBe(false);
+  });
+
+  it("keeps sparse but visible screenshots as nonblank", () => {
+    const rows = solidRows({ width: 4, height: 4, rgb: [255, 255, 255] });
+    rows[1] = [
+      255, 255, 255,
+      0, 0, 0,
+      255, 255, 255,
+      255, 255, 255
+    ];
+    const sparse = pngFromRows({ width: 4, height: 4, rows });
+
+    expect(isLikelyBlankPng(sparse)).toBe(false);
+  });
+
+  it("keeps multi-color screenshots as nonblank", () => {
+    const colorful = pngFromRows({
+      width: 4,
+      height: 2,
+      rows: [
+        [
+          255, 255, 255,
+          12, 80, 180,
+          230, 20, 120,
+          40, 40, 40
+        ],
+        [
+          255, 255, 255,
+          12, 80, 180,
+          230, 20, 120,
+          40, 40, 40
+        ]
+      ]
+    });
+
+    expect(isLikelyBlankPng(colorful)).toBe(false);
   });
 
   it("does not treat sparse pages with a login nav link as login walls", () => {
