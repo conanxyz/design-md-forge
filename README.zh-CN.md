@@ -4,9 +4,9 @@
 
 `design-md-forge` 是一个 Codex skill，用于根据网站视觉证据生成 `DESIGN.md` 设计说明。
 
-CLI 负责生成可信的 `analysis.json` 和截图。agent 再读取这些证据，在同一个 run 目录下写出最终 `DESIGN.md`。
+CLI 负责生成可信的 `analysis.json` 和截图。当 agent 正在使用这个 skill 时，分析成功后必须继续读取生成的 `analysis.json`，并在同一个 run 目录下写出参考版 `DESIGN.md`。
 
-CLI 本身不会直接写最终 `DESIGN.md`。
+CLI 本身不会直接写 `DESIGN.md`。skill 工作流要求 agent 自动完成这个后续步骤。
 
 ## Agent 安装提示
 
@@ -15,7 +15,7 @@ CLI 本身不会直接写最终 `DESIGN.md`。
 ```text
 Install the skill: `github.com/conanxyz/design-md-forge`
 
-Scope the work to this skill only. After install, read the skill's metadata and help me finish setup based only on what you can verify from that page — don't invent missing requirements. Ask before making any broader environment changes.
+Scope the work to this skill only. After install, read the skill's metadata and help me finish setup based only on what you can verify from that page — don't invent missing requirements. When analysis succeeds, automatically read the generated analysis.json and create a reference DESIGN.md in the same run directory. Ask before making any broader environment changes.
 ```
 
 ## 功能
@@ -24,7 +24,7 @@ Scope the work to this skill only. After install, read the skill's metadata and 
 - 提取 CSS 变量、computed styles、截图、标题、导航文案、CTA 文案、链接和组件候选。
 - 把证据归一化为 `analysis.json`。
 - 可显式启用 Jina Reader 作为公共 HTTP(S) 页面的文本 fallback。
-- 为 agent 编写 `DESIGN.md` 提供结构化证据。
+- 让 agent 在分析成功后自动把证据整理成参考版 `DESIGN.md`。
 
 ## 适用场景
 
@@ -84,10 +84,10 @@ npm run analyze -- \
 
 ```text
 analysis.json written to /path/to/design-output/example.com/example-home/analysis.json
-DESIGN.md should be written to /path/to/design-output/example.com/example-home/DESIGN.md
+next skill step: read analysis.json and write reference DESIGN.md to /path/to/design-output/example.com/example-home/DESIGN.md
 ```
 
-然后让 agent 读取 `analysis.json`，并按 [references/design-md-generation-rules.md](references/design-md-generation-rules.md) 写出 `DESIGN.md`。
+当这个 skill 驱动任务时，agent 不应停在这里。它应该自动读取生成的 `analysis.json`，并按 [references/design-md-generation-rules.md](references/design-md-generation-rules.md) 在同一个 run 目录写出 `DESIGN.md`。
 
 ## CLI 参数
 
@@ -115,7 +115,7 @@ design-output/
 
 - `analysis.json`: CLI 生成。
 - `screenshots/`: Playwright 生成。
-- `DESIGN.md`: agent/LLM 根据 `analysis.json` 写入。
+- `DESIGN.md`: skill 分析成功后，由 agent/LLM 自动根据 `analysis.json` 写入。
 
 `design-output/` 已被 Git 忽略。
 
@@ -301,7 +301,7 @@ npm run test:watch
 - 不自动 crawl 或自动发现关键页面。
 - 不处理登录态。
 - 不执行复杂点击、筛选、分页或多步骤交互。
-- 最终 `DESIGN.md` 由 agent/LLM 写入，而不是 CLI 写入。
+- 最终 `DESIGN.md` 在 CLI 成功后由 agent/LLM 写入，而不是 CLI 自己写入。
 - 空白截图检测是轻量像素采样，不是完整视觉质量评估。
 
 ## 维护建议

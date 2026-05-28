@@ -38,9 +38,9 @@ Optional CLI flags:
 - `--jina`: explicitly enable Jina Reader fallback collection for public HTTP(S) URLs.
 - `--no-jina`: keep Jina Reader disabled. This is the default.
 
-5. Read the generated `analysis.json`.
-6. Write `DESIGN.md` next to `analysis.json`.
-7. Report the `DESIGN.md` path to the user.
+5. After the script succeeds, immediately read the generated `analysis.json`.
+6. Automatically write a reference `DESIGN.md` next to `analysis.json` using `references/design-md-generation-rules.md`.
+7. Verify the `DESIGN.md` exists, then report the `DESIGN.md` path to the user.
 
 ## Tool Policy
 
@@ -59,7 +59,7 @@ design-output/<domain>/<run-id>/analysis.json
 design-output/<domain>/<run-id>/screenshots/
 ```
 
-The agent writes:
+After a successful analysis run, the agent automatically writes:
 
 ```text
 design-output/<domain>/<run-id>/DESIGN.md

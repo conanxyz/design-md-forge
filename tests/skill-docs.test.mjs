@@ -18,6 +18,7 @@ describe("skill documentation", () => {
     expect(skill).toContain("fewer than 2 headings");
     expect(skill).toContain("Playwright capture fails for any page");
     expect(skill).toContain("Jina fallback warnings and errors do not abort");
+    expect(skill).toContain("write a reference `DESIGN.md` next to `analysis.json`");
     expect(skill).toContain("Confidence Notes");
     expect(skill).toContain("analysis.json");
     expect(skill).toContain("DESIGN.md");

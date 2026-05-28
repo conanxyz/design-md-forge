@@ -135,7 +135,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   runAnalyzeSite(args)
     .then((result) => {
       console.log(`analysis.json written to ${result.analysisPath}`);
-      console.log(`DESIGN.md should be written to ${result.designPath}`);
+      console.log(`next skill step: read analysis.json and write reference DESIGN.md to ${result.designPath}`);
     })
     .catch((error) => {
       console.error(error.message);
