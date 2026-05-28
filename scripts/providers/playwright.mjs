@@ -42,10 +42,10 @@ export function summarizeCaptureWarnings({ textLength, cssVarCount, computedStyl
   return warnings;
 }
 
-export function buildScreenshotName(url) {
+export function buildScreenshotName(url, viewportName = "desktop") {
   const slug = slugifyUrl(url);
-  const hash = crypto.createHash("sha256").update(url).digest("hex").slice(0, 8);
-  return `desktop-${slug}-${hash}.png`;
+  const hash = crypto.createHash("sha256").update(`${viewportName}:${url}`).digest("hex").slice(0, 8);
+  return `${viewportName}-${slug}-${hash}.png`;
 }
 
 function paethPredictor(a, b, c) {
@@ -249,7 +249,12 @@ async function collectPageData(page, selectors) {
   }, selectors);
 }
 
-export async function captureWithPlaywright({ url, screenshotDir, viewport = { width: 1440, height: 1200 } }) {
+export async function captureWithPlaywright({
+  url,
+  screenshotDir,
+  viewport = { width: 1440, height: 1200 },
+  viewportName = "desktop"
+}) {
   await fs.mkdir(screenshotDir, { recursive: true });
   const browser = await chromium.launch({ headless: true });
 
@@ -289,7 +294,7 @@ export async function captureWithPlaywright({ url, screenshotDir, viewport = { w
       throw new Error("Page has no meaningful visible content");
     }
 
-    const screenshotName = buildScreenshotName(url);
+    const screenshotName = buildScreenshotName(url, viewportName);
     const screenshotPath = path.join(screenshotDir, screenshotName);
     let screenshotFallbackUsed = false;
     try {
@@ -327,7 +332,7 @@ export async function captureWithPlaywright({ url, screenshotDir, viewport = { w
       provider: "playwright",
       url: data.url,
       title: data.title,
-      viewport,
+      viewport: { name: viewportName, ...viewport },
       screenshotPath,
       htmlSummary: {
         headings: data.headings,

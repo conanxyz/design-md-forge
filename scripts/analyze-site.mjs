@@ -5,6 +5,7 @@ import { aggregatePages } from "./core/aggregate.mjs";
 import { buildRunPaths, createRunId } from "./core/paths.mjs";
 import { createAnalysis, createPageAnalysis } from "./core/schema.mjs";
 import { getDomain, normalizeInputUrl } from "./core/url.mjs";
+import { resolveViewportSelection, viewportToPlaywright } from "./core/viewports.mjs";
 import { captureWithPlaywright } from "./providers/playwright.mjs";
 import { readWithJina } from "./providers/jina.mjs";
 
@@ -21,6 +22,7 @@ export function parseArgs(argv) {
   let outDir = process.cwd();
   let runId = createRunId();
   let useJina = false;
+  let viewport = "desktop";
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
@@ -33,6 +35,10 @@ export function parseArgs(argv) {
     } else if (value === "--run-id") {
       runId = readOptionValue(argv, index, value);
       index += 1;
+    } else if (value === "--viewport") {
+      viewport = readOptionValue(argv, index, value);
+      resolveViewportSelection(viewport);
+      index += 1;
     } else if (value === "--jina") {
       useJina = true;
     } else if (value === "--no-jina") {
@@ -42,7 +48,7 @@ export function parseArgs(argv) {
     }
   }
 
-  return { urls, rootDir: outDir, runId, useJina };
+  return { urls, rootDir: outDir, runId, useJina, viewport };
 }
 
 function domainForOutput(url) {
@@ -68,6 +74,7 @@ export async function runAnalyzeSite({
   rootDir = process.cwd(),
   runId = createRunId(),
   useJina = false,
+  viewport = "desktop",
   capture = captureWithPlaywright,
   read = readWithJina
 }) {
@@ -79,40 +86,48 @@ export async function runAnalyzeSite({
   const domain = domainForOutput(normalizedUrls[0]);
   const paths = buildRunPaths({ rootDir, domain, runId });
   await fs.mkdir(paths.screenshotDir, { recursive: true });
+  const selectedViewports = resolveViewportSelection(viewport);
 
   const pages = [];
   const warnings = [];
 
   for (const url of normalizedUrls) {
-    const captured = await capture({ url, screenshotDir: paths.screenshotDir });
-    let fallbackEvidence;
-    applyVisualEvidenceConfidenceFloor(captured);
-    if (useJina && captured.htmlSummary.headings.length < 2 && !url.startsWith("file://")) {
-      try {
-        const jina = await read({ url });
-        const jinaWarnings = jina.warnings || [];
-        const jinaErrors = jina.errors || [];
-        fallbackEvidence = {
-          jina: {
-            markdown: jina.markdown,
-            confidence: jina.confidence,
-            warnings: [...jinaWarnings],
-            errors: [...jinaErrors]
-          }
-        };
-        warnings.push(...jinaWarnings.map((message) => `Jina for ${url}: ${message}`));
-        warnings.push(...jinaErrors.map((message) => `Jina for ${url}: ${message}`));
-      } catch (error) {
-        warnings.push(`Jina failed for ${url}: ${error.message}`);
+    for (const viewportConfig of selectedViewports) {
+      const captured = await capture({
+        url,
+        screenshotDir: paths.screenshotDir,
+        viewport: viewportToPlaywright(viewportConfig),
+        viewportName: viewportConfig.name
+      });
+      let fallbackEvidence;
+      applyVisualEvidenceConfidenceFloor(captured);
+      if (useJina && captured.htmlSummary.headings.length < 2 && !url.startsWith("file://")) {
+        try {
+          const jina = await read({ url });
+          const jinaWarnings = jina.warnings || [];
+          const jinaErrors = jina.errors || [];
+          fallbackEvidence = {
+            jina: {
+              markdown: jina.markdown,
+              confidence: jina.confidence,
+              warnings: [...jinaWarnings],
+              errors: [...jinaErrors]
+            }
+          };
+          warnings.push(...jinaWarnings.map((message) => `Jina for ${url}: ${message}`));
+          warnings.push(...jinaErrors.map((message) => `Jina for ${url}: ${message}`));
+        } catch (error) {
+          warnings.push(`Jina failed for ${url}: ${error.message}`);
+        }
       }
-    }
 
-    const pageAnalysis = createPageAnalysis(captured);
-    if (fallbackEvidence) {
-      pageAnalysis.fallbacks = fallbackEvidence;
+      const pageAnalysis = createPageAnalysis(captured);
+      if (fallbackEvidence) {
+        pageAnalysis.fallbacks = fallbackEvidence;
+      }
+      pages.push(pageAnalysis);
+      warnings.push(...captured.warnings.map((message) => `${url}: ${message}`));
     }
-    pages.push(pageAnalysis);
-    warnings.push(...captured.warnings.map((message) => `${url}: ${message}`));
   }
 
   const aggregate = aggregatePages(pages);

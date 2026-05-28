@@ -86,9 +86,9 @@ describe("Playwright capture utilities", () => {
   });
 
   it("keeps readable screenshot name prefixes and extensions", () => {
-    const name = buildScreenshotName("https://example.com/pricing?plan=a");
+    const name = buildScreenshotName("https://example.com/pricing?plan=a", "mobile");
 
-    expect(name.startsWith("desktop-pricing-")).toBe(true);
+    expect(name.startsWith("mobile-pricing-")).toBe(true);
     expect(name.endsWith(".png")).toBe(true);
   });
 

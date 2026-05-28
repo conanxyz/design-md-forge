@@ -141,4 +141,43 @@ describe("analyze-site CLI", () => {
     expect(parseArgs(["--url", "https://example.com", "--jina"]).useJina).toBe(true);
     expect(() => parseArgs(["--url", "https://example.com", "--jin"])).toThrow("Unknown option: --jin");
   });
+
+  it("parses viewport selection", () => {
+    expect(parseArgs(["--url", "https://example.com"]).viewport).toBe("desktop");
+    expect(parseArgs(["--url", "https://example.com", "--viewport", "all"]).viewport).toBe("all");
+    expect(() => parseArgs(["--url", "https://example.com", "--viewport"])).toThrow("--viewport requires a value");
+  });
+
+  it("captures every selected viewport for every URL", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "design-md-forge-"));
+    const seen = [];
+    try {
+      const result = await runAnalyzeSite({
+        urls: ["https://example.com"],
+        rootDir,
+        runId: "2026-05-28-viewports",
+        viewport: "all",
+        capture: async ({ url, viewport, viewportName }) => {
+          seen.push({ url, viewport, viewportName });
+          return createCapturedPage({
+            url,
+            viewport: { name: viewportName, ...viewport },
+            screenshotPath: `/tmp/screenshots/${viewportName}.png`
+          });
+        }
+      });
+
+      const analysis = await readAnalysis(result);
+
+      expect(seen.map((entry) => entry.viewportName)).toEqual(["desktop", "tablet", "mobile"]);
+      expect(analysis.pages.map((page) => page.viewport.name)).toEqual(["desktop", "tablet", "mobile"]);
+      expect(analysis.pages.map((page) => page.screenshotPath)).toEqual([
+        "/tmp/screenshots/desktop.png",
+        "/tmp/screenshots/tablet.png",
+        "/tmp/screenshots/mobile.png"
+      ]);
+    } finally {
+      await fs.rm(rootDir, { recursive: true, force: true });
+    }
+  });
 });
