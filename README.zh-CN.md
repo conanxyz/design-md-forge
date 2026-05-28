@@ -115,7 +115,7 @@ next skill step: read analysis.json and write reference DESIGN.md to /path/to/de
 | `--run-id <id>` | 否 | 稳定输出目录名，默认按时间生成。必须是单个安全路径片段，不能是 `.` 或 `..`。 |
 | `--viewport <name>` | 否 | 要采集的 viewport preset。使用 `all` 可对每个分析 URL 采集所有支持的 viewport。 |
 | `--auto-pages` | 否 | 从一个输入 URL 显式自动选择 2-4 个浅层关键同域页面。这是关键页发现，不是 crawl。 |
-| `--max-pages <count>` | 否 | 启用 `--auto-pages` 时最多自动选择的页面数。 |
+| `--max-pages <count>` | 否 | 启用 `--auto-pages` 时最多分析的总页面数，包含起始 URL。 |
 | `--jina` | 否 | 显式启用 Jina Reader fallback。默认关闭。 |
 | `--no-jina` | 否 | 保持 Jina Reader 关闭。默认就是关闭。 |
 

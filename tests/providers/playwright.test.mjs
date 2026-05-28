@@ -62,6 +62,20 @@ function solidRows({ width, height, rgb }) {
   return Array.from({ length: height }, () => row);
 }
 
+function rowsWithSinglePixel({ width, height, backgroundRgb, pixelRgb, pixelX, pixelY }) {
+  return Array.from({ length: height }, (_, y) => {
+    const row = Buffer.alloc(width * 3);
+    for (let x = 0; x < width; x += 1) {
+      const offset = x * 3;
+      const rgb = x === pixelX && y === pixelY ? pixelRgb : backgroundRgb;
+      row[offset] = rgb[0];
+      row[offset + 1] = rgb[1];
+      row[offset + 2] = rgb[2];
+    }
+    return row;
+  });
+}
+
 describe("Playwright capture utilities", () => {
   it("uses focused selectors for visual style evidence", () => {
     expect(buildRepresentativeSelectors()).toEqual(expect.arrayContaining([
@@ -119,6 +133,23 @@ describe("Playwright capture utilities", () => {
       255, 255, 255
     ];
     const sparse = pngFromRows({ width: 4, height: 4, rows });
+
+    expect(isLikelyBlankPng(sparse)).toBe(false);
+  });
+
+  it("keeps one-pixel visible screenshots as nonblank", () => {
+    const sparse = pngFromRows({
+      width: 1440,
+      height: 1200,
+      rows: rowsWithSinglePixel({
+        width: 1440,
+        height: 1200,
+        backgroundRgb: [255, 255, 255],
+        pixelRgb: [0, 0, 0],
+        pixelX: 1,
+        pixelY: 1
+      })
+    });
 
     expect(isLikelyBlankPng(sparse)).toBe(false);
   });

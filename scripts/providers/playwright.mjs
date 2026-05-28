@@ -101,8 +101,6 @@ export function summarizePngSamples(buffer) {
 
   const inflated = zlib.inflateSync(Buffer.concat(idatChunks));
   const stride = width * channels;
-  const sampleEveryX = Math.max(1, Math.floor(width / 160));
-  const sampleEveryY = Math.max(1, Math.floor(height / 160));
   let previous = Buffer.alloc(stride);
   const buckets = new Set();
   const sums = [0, 0, 0];
@@ -127,23 +125,21 @@ export function summarizePngSamples(buffer) {
       else throw new Error("Screenshot PNG contains an unsupported filter");
     }
 
-    if (y % sampleEveryY === 0) {
-      for (let x = 0; x < width; x += sampleEveryX) {
-        const pixelOffset = x * channels;
-        const r = row[pixelOffset];
-        const g = channels >= 3 ? row[pixelOffset + 1] : row[pixelOffset];
-        const b = channels >= 3 ? row[pixelOffset + 2] : row[pixelOffset];
-        const a = channels === 4 ? row[pixelOffset + 3] : 255;
-        sampledPixels += 1;
-        if (a > 8) nonTransparentPixels += 1;
-        buckets.add(`${Math.floor(r / 16)}:${Math.floor(g / 16)}:${Math.floor(b / 16)}:${Math.floor(a / 16)}`);
-        sums[0] += r;
-        sums[1] += g;
-        sums[2] += b;
-        sumSquares[0] += r * r;
-        sumSquares[1] += g * g;
-        sumSquares[2] += b * b;
-      }
+    for (let x = 0; x < width; x += 1) {
+      const pixelOffset = x * channels;
+      const r = row[pixelOffset];
+      const g = channels >= 3 ? row[pixelOffset + 1] : row[pixelOffset];
+      const b = channels >= 3 ? row[pixelOffset + 2] : row[pixelOffset];
+      const a = channels === 4 ? row[pixelOffset + 3] : 255;
+      sampledPixels += 1;
+      if (a > 8) nonTransparentPixels += 1;
+      buckets.add(`${Math.floor(r / 16)}:${Math.floor(g / 16)}:${Math.floor(b / 16)}:${Math.floor(a / 16)}`);
+      sums[0] += r;
+      sums[1] += g;
+      sums[2] += b;
+      sumSquares[0] += r * r;
+      sumSquares[1] += g * g;
+      sumSquares[2] += b * b;
     }
     previous = row;
   }

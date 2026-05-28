@@ -118,7 +118,7 @@ When this skill is driving the task, the agent should not stop here. It should a
 | `--run-id <id>` | No | Stable output run directory. Defaults to a timestamp. It must be a single path-safe segment and cannot be `.` or `..`. |
 | `--viewport <name>` | No | Viewport preset to capture. Use `all` to capture each analyzed URL across all supported viewport presets. |
 | `--auto-pages` | No | Explicitly auto-select 2-4 shallow key same-domain pages from one input URL. This is key-page discovery, not crawling. |
-| `--max-pages <count>` | No | Maximum number of auto-selected pages when `--auto-pages` is enabled. |
+| `--max-pages <count>` | No | Maximum total analyzed pages when `--auto-pages` is enabled, including the starting URL. |
 | `--jina` | No | Explicitly enables Jina Reader fallback for eligible public HTTP(S) URLs. Disabled by default. |
 | `--no-jina` | No | Keeps Jina Reader disabled. This is the default. |
 
