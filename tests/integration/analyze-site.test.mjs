@@ -180,4 +180,57 @@ describe("analyze-site CLI", () => {
       await fs.rm(rootDir, { recursive: true, force: true });
     }
   });
+
+  it("auto-selects same-domain key pages when explicitly enabled", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "design-md-forge-"));
+    const capturedUrls = [];
+    try {
+      const result = await runAnalyzeSite({
+        urls: ["https://example.com"],
+        rootDir,
+        runId: "2026-05-28-auto-pages",
+        autoPages: true,
+        maxPages: 3,
+        capture: async ({ url, viewport, viewportName }) => {
+          capturedUrls.push(url);
+          return createCapturedPage({
+            url,
+            viewport: { name: viewportName, ...viewport },
+            links: url === "https://example.com/"
+              ? [
+                  "https://example.com/pricing",
+                  "https://example.com/features",
+                  "https://external.test/docs"
+                ]
+              : []
+          });
+        }
+      });
+
+      const analysis = await readAnalysis(result);
+
+      expect(capturedUrls).toEqual([
+        "https://example.com/",
+        "https://example.com/pricing",
+        "https://example.com/features"
+      ]);
+      expect(analysis.target.analyzedUrls).toEqual([
+        "https://example.com/",
+        "https://example.com/pricing",
+        "https://example.com/features"
+      ]);
+      expect(analysis.warnings).toContain(
+        "Auto-selected 2 same-domain key pages: https://example.com/pricing, https://example.com/features"
+      );
+    } finally {
+      await fs.rm(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("parses auto-page options", () => {
+    expect(parseArgs(["--url", "https://example.com"]).autoPages).toBe(false);
+    expect(parseArgs(["--url", "https://example.com", "--auto-pages"]).autoPages).toBe(true);
+    expect(parseArgs(["--url", "https://example.com", "--max-pages", "2"]).maxPages).toBe(2);
+    expect(() => parseArgs(["--url", "https://example.com", "--max-pages", "1"])).toThrow("--max-pages must be an integer from 2 to 10");
+  });
 });

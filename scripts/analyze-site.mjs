@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { aggregatePages } from "./core/aggregate.mjs";
+import { selectAutoPages } from "./core/discovery.mjs";
 import { buildRunPaths, createRunId } from "./core/paths.mjs";
 import { createAnalysis, createPageAnalysis } from "./core/schema.mjs";
 import { getDomain, normalizeInputUrl } from "./core/url.mjs";
@@ -17,12 +18,28 @@ function readOptionValue(argv, index, option) {
   return value;
 }
 
+function readIntegerOption(argv, index, option) {
+  const value = readOptionValue(argv, index, option);
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 2 || parsed > 10) {
+    throw new Error(`${option} must be an integer from 2 to 10`);
+  }
+  return parsed;
+}
+
+function canonicalAnalyzedUrl(url) {
+  if (!/^https?:\/\//i.test(url)) return url;
+  return new URL(url).toString();
+}
+
 export function parseArgs(argv) {
   const urls = [];
   let outDir = process.cwd();
   let runId = createRunId();
   let useJina = false;
   let viewport = "desktop";
+  let autoPages = false;
+  let maxPages = 4;
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
@@ -43,12 +60,17 @@ export function parseArgs(argv) {
       useJina = true;
     } else if (value === "--no-jina") {
       useJina = false;
+    } else if (value === "--auto-pages") {
+      autoPages = true;
+    } else if (value === "--max-pages") {
+      maxPages = readIntegerOption(argv, index, value);
+      index += 1;
     } else {
       throw new Error(`Unknown option: ${value}`);
     }
   }
 
-  return { urls, rootDir: outDir, runId, useJina, viewport };
+  return { urls, rootDir: outDir, runId, useJina, viewport, autoPages, maxPages };
 }
 
 function domainForOutput(url) {
@@ -75,6 +97,8 @@ export async function runAnalyzeSite({
   runId = createRunId(),
   useJina = false,
   viewport = "desktop",
+  autoPages = false,
+  maxPages = 4,
   capture = captureWithPlaywright,
   read = readWithJina
 }) {
@@ -83,6 +107,9 @@ export async function runAnalyzeSite({
   }
 
   const normalizedUrls = urls.map(normalizeInputUrl);
+  const analyzedUrls = autoPages
+    ? normalizedUrls.map(canonicalAnalyzedUrl)
+    : [...normalizedUrls];
   const domain = domainForOutput(normalizedUrls[0]);
   const paths = buildRunPaths({ rootDir, domain, runId });
   await fs.mkdir(paths.screenshotDir, { recursive: true });
@@ -91,7 +118,8 @@ export async function runAnalyzeSite({
   const pages = [];
   const warnings = [];
 
-  for (const url of normalizedUrls) {
+  for (let urlIndex = 0; urlIndex < analyzedUrls.length; urlIndex += 1) {
+    const url = analyzedUrls[urlIndex];
     for (const viewportConfig of selectedViewports) {
       const captured = await capture({
         url,
@@ -127,6 +155,24 @@ export async function runAnalyzeSite({
       }
       pages.push(pageAnalysis);
       warnings.push(...captured.warnings.map((message) => `${url}: ${message}`));
+
+      if (
+        autoPages &&
+        urlIndex === 0 &&
+        viewportConfig.name === "desktop" &&
+        normalizedUrls.length === 1
+      ) {
+        const discovered = selectAutoPages({
+          sourceUrl: url,
+          links: captured.links,
+          existingUrls: analyzedUrls,
+          maxPages
+        });
+        if (discovered.length > 0) {
+          analyzedUrls.push(...discovered);
+          warnings.push(`Auto-selected ${discovered.length} same-domain key pages: ${discovered.join(", ")}`);
+        }
+      }
     }
   }
 
@@ -134,7 +180,7 @@ export async function runAnalyzeSite({
   const analysis = createAnalysis({
     domain,
     inputUrls: normalizedUrls,
-    analyzedUrls: normalizedUrls,
+    analyzedUrls,
     pages,
     aggregate,
     warnings
