@@ -72,6 +72,23 @@ npm run analyze -- \
   --url "https://example.com/docs"
 ```
 
+采集所有支持的 viewport：
+
+```bash
+npm run analyze -- \
+  --url "https://example.com" \
+  --viewport all
+```
+
+显式自动选择浅层关键同域页面：
+
+```bash
+npm run analyze -- \
+  --url "https://example.com" \
+  --auto-pages \
+  --max-pages 4
+```
+
 使用固定 run id：
 
 ```bash
@@ -96,6 +113,9 @@ next skill step: read analysis.json and write reference DESIGN.md to /path/to/de
 | `--url <url>` | 是 | 要分析的 URL。可重复传入多个。支持 `https://`、`http://`、`file://`。无协议 URL 会按 `https://` 规范化。 |
 | `--out-dir <dir>` | 否 | 输出根目录，默认当前工作目录。 |
 | `--run-id <id>` | 否 | 稳定输出目录名，默认按时间生成。必须是单个安全路径片段，不能是 `.` 或 `..`。 |
+| `--viewport <name>` | 否 | 要采集的 viewport preset。使用 `all` 可对每个分析 URL 采集所有支持的 viewport。 |
+| `--auto-pages` | 否 | 从一个输入 URL 显式自动选择 2-4 个浅层关键同域页面。这是关键页发现，不是 crawl。 |
+| `--max-pages <count>` | 否 | 启用 `--auto-pages` 时最多自动选择的页面数。 |
 | `--jina` | 否 | 显式启用 Jina Reader fallback。默认关闭。 |
 | `--no-jina` | 否 | 保持 Jina Reader 关闭。默认就是关闭。 |
 
@@ -126,7 +146,7 @@ design-output/
 顶层字段：
 
 - `target`: 域名、输入 URL、实际分析 URL、采集时间。
-- `pages`: 每个页面一份分析结果。
+- `pages`: 每个 URL/viewport 采集结果一份分析结果。
 - `aggregate`: 去重后的 tokens、组件模式和置信度摘要。
 - `warnings`: 运行级警告。
 
@@ -297,12 +317,11 @@ npm run test:watch
 
 ## 已知限制
 
-- 仅桌面 viewport。
-- 不自动 crawl 或自动发现关键页面。
 - 不处理登录态。
-- 不执行复杂点击、筛选、分页或多步骤交互。
+- 不执行任意复杂点击、筛选、分页或多步骤交互。
+- 关键页发现需要显式开启，并且是浅层选择，不是 crawler。
 - 最终 `DESIGN.md` 在 CLI 成功后由 agent/LLM 写入，而不是 CLI 自己写入。
-- 空白截图检测是轻量像素采样，不是完整视觉质量评估。
+- 截图校验是启发式像素分析，不是完整视觉质量评估。
 
 ## 维护建议
 

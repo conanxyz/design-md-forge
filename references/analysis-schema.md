@@ -5,7 +5,7 @@
 Top-level fields:
 
 - `target`: domain, input URLs, analyzed URLs, and capture time.
-- `pages`: one object per analyzed page.
+- `pages`: one object per analyzed URL/viewport capture.
 - `aggregate`: deduplicated tokens and confidence summaries.
 - `warnings`: run-level warnings.
 
@@ -21,6 +21,8 @@ Each page contains:
 - `confidence`
 - `warnings`
 - Optional `fallbacks.jina`: captured only when `--jina` is set for eligible public HTTP(S) pages with fewer than 2 Playwright headings. It contains `markdown`, `confidence`, `warnings`, and `errors`.
+
+When `--viewport all` captures the same URL multiple times, `pages` has one entry per URL/viewport. Consumers should treat `page.url + page.viewport.name` as the page identity, not `page.url` alone.
 
 Token entries should preserve source evidence with selector, tag, property, value, role candidate, occurrence count when aggregated, and confidence.
 

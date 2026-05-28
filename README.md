@@ -75,6 +75,23 @@ npm run analyze -- \
   --url "https://example.com/docs"
 ```
 
+Capture every supported viewport for the URL:
+
+```bash
+npm run analyze -- \
+  --url "https://example.com" \
+  --viewport all
+```
+
+Explicitly auto-select shallow key same-domain pages:
+
+```bash
+npm run analyze -- \
+  --url "https://example.com" \
+  --auto-pages \
+  --max-pages 4
+```
+
 Use a stable run id:
 
 ```bash
@@ -99,6 +116,9 @@ When this skill is driving the task, the agent should not stop here. It should a
 | `--url <url>` | Yes | Input URL to analyze. Repeat it for multiple pages. Supports `https://`, `http://`, and `file://`. Protocol-less URLs are normalized to `https://`. |
 | `--out-dir <dir>` | No | Output root directory. Defaults to the current working directory. |
 | `--run-id <id>` | No | Stable output run directory. Defaults to a timestamp. It must be a single path-safe segment and cannot be `.` or `..`. |
+| `--viewport <name>` | No | Viewport preset to capture. Use `all` to capture each analyzed URL across all supported viewport presets. |
+| `--auto-pages` | No | Explicitly auto-select 2-4 shallow key same-domain pages from one input URL. This is key-page discovery, not crawling. |
+| `--max-pages <count>` | No | Maximum number of auto-selected pages when `--auto-pages` is enabled. |
 | `--jina` | No | Explicitly enables Jina Reader fallback for eligible public HTTP(S) URLs. Disabled by default. |
 | `--no-jina` | No | Keeps Jina Reader disabled. This is the default. |
 
@@ -133,7 +153,7 @@ Files:
 Top-level fields:
 
 - `target`: domain, input URLs, analyzed URLs, and capture time.
-- `pages`: one analysis object per page.
+- `pages`: one analysis object per URL/viewport capture.
 - `aggregate`: deduplicated tokens, component patterns, and confidence summaries.
 - `warnings`: run-level warnings.
 
@@ -395,6 +415,29 @@ npm run analyze -- \
 
 The analyzer aggregates tokens and component patterns across pages.
 
+### Capture multiple viewports
+
+```bash
+npm run analyze -- \
+  --url "https://example.com" \
+  --viewport all \
+  --run-id "example-viewports"
+```
+
+When `--viewport all` is used, the same URL can appear multiple times in `analysis.json`; each entry represents a different viewport.
+
+### Auto-select key pages
+
+```bash
+npm run analyze -- \
+  --url "https://example.com" \
+  --auto-pages \
+  --max-pages 4 \
+  --run-id "example-key-pages"
+```
+
+Auto-page discovery is explicit and shallow. It selects key same-domain pages; it is not a crawler.
+
 ### Explicitly enable Jina
 
 ```bash
@@ -408,12 +451,11 @@ Jina runs only when eligible and stores evidence under `fallbacks.jina`.
 
 ## Known Limits
 
-- Desktop viewport only.
-- No automatic crawl or key-page discovery.
 - No logged-in state handling.
-- No complex clicking, filtering, pagination, or multi-step interaction.
+- No arbitrary clicking, filtering, pagination, or multi-step interaction.
+- Key-page discovery is explicit and shallow; it is not a crawler.
 - Final `DESIGN.md` is written by the agent/LLM after the CLI succeeds, not by the CLI itself.
-- Blank screenshot detection is lightweight pixel sampling, not full visual quality evaluation.
+- Screenshot validation is heuristic pixel analysis, not full visual quality evaluation.
 
 ## Maintenance Notes
 

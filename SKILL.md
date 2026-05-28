@@ -35,6 +35,9 @@ Optional CLI flags:
 - `--url`: repeatable input URL to analyze.
 - `--out-dir`: output root for generated analysis artifacts.
 - `--run-id`: stable path-safe run directory name to use instead of an auto-generated ID.
+- `--viewport`: viewport preset to capture. Use `all` to capture each analyzed URL across all supported viewport presets.
+- `--auto-pages`: explicitly auto-select 2-4 shallow key same-domain pages from one input URL.
+- `--max-pages`: maximum number of auto-selected pages when `--auto-pages` is enabled.
 - `--jina`: explicitly enable Jina Reader fallback collection for public HTTP(S) URLs.
 - `--no-jina`: keep Jina Reader disabled. This is the default.
 
